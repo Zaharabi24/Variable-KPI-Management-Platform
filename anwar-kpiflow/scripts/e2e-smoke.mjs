@@ -56,7 +56,8 @@ async function login(ctx, email, password) {
 }
 
 async function createKpi(page, { name, target, actual, weight, evidencePath }) {
-  await page.goto(`${BASE}/my-kpi`);
+  await page.goto(`${BASE}/my-kpi`, { waitUntil: "networkidle" });
+  await page.waitForSelector("article", { timeout: T });
   await page.click('button[aria-label="Create KPI"]');
   await page.waitForSelector("#name", { timeout: T });
   await page.fill("#name", name);
@@ -138,7 +139,8 @@ try {
     check("Three bar charts shown (AC-18)", /Monthly KPI/.test(tiles) && /Quarterly KPI/.test(tiles) && /Yearly KPI/.test(tiles));
     await shot(page, "13-performance-summary.png");
     await page.goto(`${BASE}/performance?type=MONTHLY&month=2&year=2026`);
-    check("Empty period shows a no-data message (AC-19)", /No KPIs for this month/.test(await page.locator("main").innerText()));
+    const noData = await page.waitForSelector("text=No KPIs for this month", { timeout: T }).then(() => true).catch(() => false);
+    check("Empty period shows a no-data message (AC-19)", noData);
 
     await page.goto(`${BASE}/pending-requests`);
     await page.waitForURL((u) => !u.pathname.includes("/pending-requests"), { timeout: T }).catch(() => {});
@@ -229,7 +231,9 @@ try {
     await page.fill("#actual", "12");
     await page.setInputFiles("#evidence", evidence);
     await page.click('button[form="kpi-form"]');
-    await page.waitForURL(/resubmitted=1/, { timeout: T });
+    // The action answers with a client-side redirect (pushState); poll the URL rather than wait for a document navigation.
+    await page.waitForFunction(() => location.search.includes("resubmitted=1"), null, { timeout: T });
+    await page.waitForSelector("text=Adjustment History", { timeout: T });
     const r = await page.locator("main").innerText();
     check("Resubmitted → Submitted; v2 Returned and v3 Resubmitted kept (FR-KPI-07, BR-21)", /v2 · Returned/.test(r) && /v3 · Resubmitted/.test(r));
     await ctx.close();
