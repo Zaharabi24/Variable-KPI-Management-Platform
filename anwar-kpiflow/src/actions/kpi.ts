@@ -92,10 +92,6 @@ export async function createKpiAction(_prev: ActionState, formData: FormData): P
   });
   await audit(user.id, "KPI_SUBMITTED", "Kpi", kpi.id, { name: kpi.name, approverId: d.approverId });
   await audit(user.id, "EVIDENCE_UPLOADED", "Kpi", kpi.id, { fileName: stored.fileName, sha256: stored.sha256 });
-
-  revalidatePath("/my-kpi");
-  revalidatePath("/pending-requests");
-  revalidatePath("/dashboard");
   return { ok: true, message: `"${kpi.name}" submitted to your Approval Person.` };
 }
 
@@ -145,9 +141,6 @@ export async function resubmitKpiAction(_prev: ActionState, formData: FormData):
     data: { kpiId: kpi.id, versionNo: updated.currentVersion, action: "RESUBMIT", snapshot: snapshotOf(updated), changes: JSON.stringify(changes), changedById: user.id },
   });
   await audit(user.id, "KPI_RESUBMITTED", "Kpi", kpi.id, { version: updated.currentVersion });
-  revalidatePath("/my-kpi");
-  revalidatePath(`/my-kpi/${kpi.id}`);
-  revalidatePath("/pending-requests");
   redirect(`/my-kpi/${kpi.id}?resubmitted=1`);
 }
 

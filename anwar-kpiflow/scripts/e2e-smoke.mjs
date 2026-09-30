@@ -67,8 +67,18 @@ async function createKpi(page, { name, target, actual, weight, evidencePath }) {
   await page.fill("#remarks", `Automated smoke test submission (${RUN}).`);
   await page.selectOption("#approverId", { index: 1 });
   await page.setInputFiles("#evidence", evidencePath);
+  const posts = [];
+  const onResp = (r) => { if (r.request().method() === "POST") posts.push(`${r.status()} ${r.url().replace(BASE, "")}`); };
+  page.on("response", onResp);
+  const enabled = await page.locator('button[form="kpi-form"]').isEnabled();
   await page.click('button[form="kpi-form"]');
-  await page.waitForSelector("text=submitted to your Approval Person", { timeout: T });
+  await page.waitForSelector("text=submitted to your Approval Person", { timeout: T }).catch(async (err) => {
+    console.log(`DIAG createKpi(${name}): submit was enabled=${enabled} | url=${page.url()} | drawer open=${await page.locator("#kpi-form").count()} | posts=${posts.join(" || ") || "none"}`);
+    console.log("DIAG alerts:", (await page.locator("[role=alert], [role=status]").allInnerTexts()).join(" / ").slice(0, 300), "| form errors:", (await page.locator("#kpi-form p.text-red-600").allInnerTexts()).join(" / "), "| footer:", (await page.locator("[role=dialog] p").allInnerTexts()).slice(-1)[0]);
+    await shot(page, "_diag-create.png");
+    throw err;
+  });
+  page.off("response", onResp);
   await page.waitForSelector(`article:has-text('${name}')`, { timeout: T });
 }
 
@@ -230,9 +240,17 @@ try {
     await page.waitForSelector("#kpi-form", { timeout: T });
     await page.fill("#actual", "12");
     await page.setInputFiles("#evidence", evidence);
+    const posts = [];
+    page.on("response", (r) => { if (r.request().method() === "POST") posts.push(`${r.status()} ${r.url().replace(BASE, "")} redirect=${r.headers()["x-action-redirect"] ?? "-"}`); });
     await page.click('button[form="kpi-form"]');
     // The action answers with a client-side redirect (pushState); poll the URL rather than wait for a document navigation.
-    await page.waitForFunction(() => location.search.includes("resubmitted=1"), null, { timeout: T });
+    await page.waitForFunction(() => location.search.includes("resubmitted=1"), null, { timeout: T }).catch(async (err) => {
+      console.log("DIAG url:", page.url(), "| drawer open:", await page.locator("#kpi-form").count(), "| alerts:", (await page.locator("[role=alert]").allInnerTexts()).join(" / ").slice(0, 300));
+      console.log("DIAG posts:", posts.join(" || ") || "none", "| submit enabled:", await page.locator('button[form="kpi-form"]').isEnabled().catch(() => "n/a"));
+      console.log("DIAG form errors:", (await page.locator("#kpi-form p.text-red-600").allInnerTexts()).join(" / "));
+      await shot(page, "_diag-resubmit.png");
+      throw err;
+    });
     await page.waitForSelector("text=Adjustment History", { timeout: T });
     const r = await page.locator("main").innerText();
     check("Resubmitted → Submitted; v2 Returned and v3 Resubmitted kept (FR-KPI-07, BR-21)", /v2 · Returned/.test(r) && /v3 · Resubmitted/.test(r));

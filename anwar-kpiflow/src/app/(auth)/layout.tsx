@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Logo } from "@/components/shell/logo";
 
+/** Vercel: allow slow database round trips and cold starts to finish instead of cutting the response (default is 10 s on Hobby). */
+export const maxDuration = 60;
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">

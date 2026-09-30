@@ -3,6 +3,9 @@ import { db } from "@/lib/db";
 import { AppShell } from "@/components/shell/app-shell";
 import { ROLES } from "@/lib/constants";
 
+/** Vercel: allow slow database round trips and cold starts to finish instead of cutting the response (default is 10 s on Hobby). */
+export const maxDuration = 60;
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
 

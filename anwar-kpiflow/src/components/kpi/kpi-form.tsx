@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
+import { useRouter } from "next/navigation";
 import { UploadCloud, FileText, X } from "lucide-react";
 import { createKpiAction, resubmitKpiAction } from "@/actions/kpi";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ export function KpiFormDrawer({
   const isEdit = !!initial;
   const [state, action, pending] = useActionState(isEdit ? resubmitKpiAction : createKpiAction, null);
   const toast = useToast();
+  const router = useRouter();
   const e = state?.errors ?? {};
 
   const now = new Date(Date.now() + 6 * 3600 * 1000);
@@ -83,6 +85,7 @@ export function KpiFormDrawer({
     if (state?.ok) {
       toast("success", state.message ?? "Submitted.");
       onClose();
+      router.refresh();
     } else if (state && !state.ok && state.message) {
       toast("error", state.message);
     }
