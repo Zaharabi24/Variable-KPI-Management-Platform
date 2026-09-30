@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input, Select } from "@/components/ui/field";
 import { STATUS_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -22,9 +22,9 @@ function useApply() {
 }
 
 export function KpiFilters({
-  departments, q, status, dept, deleted, allPeriods,
+  departments, q, status, dept, role, deleted, allPeriods,
 }: {
-  departments: { id: string; name: string }[]; q: string; status: string; dept: string; deleted: boolean; allPeriods: boolean;
+  departments: { id: string; name: string }[]; q: string; status: string; dept: string; role: string; deleted: boolean; allPeriods: boolean;
 }) {
   const apply = useApply();
   return (
@@ -41,6 +41,18 @@ export function KpiFilters({
         <option value="">All statuses</option>
         {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </Select>
+      <div className="relative lg:w-[190px]">
+        <Select aria-label="Role" className={cn(role && "pr-14", !role && "text-ink-500")} value={role} onChange={(e) => apply({ role: e.target.value })}>
+          <option value="" disabled>Filter by role</option>
+          <option value="EMPLOYEE">Employee</option>
+          <option value="DEPARTMENT_HEAD">Department Head</option>
+        </Select>
+        {role && (
+          <button type="button" onClick={() => apply({ role: "" })} aria-label="Clear role filter" title="Show all roles" className="absolute right-8 top-1/2 -translate-y-1/2 h-6 w-6 rounded-md flex items-center justify-center text-ink-400 hover:text-ink-900 hover:bg-ink-100">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
       <button onClick={() => apply({ all: allPeriods ? "" : "1" })} className={cn("h-10 px-3.5 rounded-lg border text-[13px] font-medium whitespace-nowrap", allPeriods ? "bg-brand-700 border-brand-700 text-white" : "bg-white border-ink-200 text-ink-700 hover:bg-ink-100/60")}>
         {allPeriods ? "Showing all periods" : "Show all periods"}
       </button>

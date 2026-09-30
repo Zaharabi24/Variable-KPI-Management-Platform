@@ -29,6 +29,7 @@ export default async function AllKpisPage({ searchParams }: { searchParams: Prom
   const where: Prisma.KpiWhereInput = {
     ...(sp.deleted === "1" ? {} : { deletedAt: null }),
     ...(sp.status ? { status: sp.status } : {}),
+    ...(sp.role ? { owner: { role: sp.role } } : {}),
     ...(sp.q ? { OR: [{ name: { contains: sp.q, mode: "insensitive" } }, { owner: { fullName: { contains: sp.q, mode: "insensitive" } } }, { owner: { employeeId: { contains: sp.q, mode: "insensitive" } } }] } : {}),
     ...(allPeriods ? {} : { periodYear: period.year, periodMonth: { gte: period.fromMonth, lte: period.toMonth } }),
   };
@@ -56,7 +57,7 @@ export default async function AllKpisPage({ searchParams }: { searchParams: Prom
         action={<PeriodFilter period={period} />}
       />
       <Card>
-        <KpiFilters departments={departments} q={sp.q ?? ""} status={sp.status ?? ""} dept={sp.dept ?? ""} deleted={sp.deleted === "1"} allPeriods={allPeriods} />
+        <KpiFilters departments={departments} q={sp.q ?? ""} status={sp.status ?? ""} dept={sp.dept ?? ""} role={sp.role ?? ""} deleted={sp.deleted === "1"} allPeriods={allPeriods} />
         <DepartmentChips total={allInPeriod.length} counts={deptCounts} active={sp.dept ?? ""} />
         <div className="px-5 py-3 flex flex-wrap gap-2 border-b border-ink-100">
           {summary.map(({ s, n }) => <Pill key={s} tone={s === "SUBMITTED" ? "amber" : s === "REJECTED" || s === "RETURNED" ? "red" : "green"}>{STATUS_LABELS[s as KpiStatus]} · {n}</Pill>)}
