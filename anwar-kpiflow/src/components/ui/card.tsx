@@ -91,11 +91,11 @@ export function StatTile({
 }) {
   const toneCls = { default: "text-ink-900", good: "text-brand-700", bad: "text-red-600", warn: "text-amber-700" }[tone];
   return (
-    <div className="card p-5 flex flex-col min-w-0">
+    <div className="card p-5 flex flex-col min-w-0 h-full">
       <div className="text-[12px] font-medium text-ink-500 uppercase tracking-wide">{label}</div>
       <div className={cn("mt-2 text-[26px] font-semibold tnum leading-none", toneCls)}>{value}</div>
       {hint && <div className="mt-2 text-[12.5px] text-ink-500">{hint}</div>}
-      {children}
+      {children && <div className="mt-auto pt-3">{children}</div>}
     </div>
   );
 }

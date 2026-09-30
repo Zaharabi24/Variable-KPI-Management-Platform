@@ -47,7 +47,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       />
 
       {superAdmin && orgCounts && (
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <Link href="/admin/department-heads" className="card p-4 flex items-center gap-3 hover:border-brand-200 transition-colors">
             <Users className="h-5 w-5 text-brand-700" /><div><div className="text-[12px] text-ink-500">Department Heads</div><div className="font-mono tnum text-[18px] font-semibold">{orgCounts[0]}</div></div>
           </Link>
@@ -63,9 +63,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       {/* FR-DD-02..05 */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatTile label="Average Achievement" value={dash.averageAchievement === null ? "—" : fmtPct(dash.averageAchievement)} hint={dash.averageAchievement === null ? "No approved KPIs this period" : `Across ${dash.employees.length} team member${dash.employees.length === 1 ? "" : "s"}`}>
-          <ProgressBar value={dash.averageAchievement ?? 0} className="mt-3" tone={dash.averageAchievement === null ? "brand" : dash.averageAchievement >= 90 ? "green" : dash.averageAchievement >= 70 ? "amber" : "red"} />
+          <ProgressBar value={dash.averageAchievement ?? 0} tone={dash.averageAchievement === null ? "brand" : dash.averageAchievement >= 90 ? "green" : dash.averageAchievement >= 70 ? "amber" : "red"} />
         </StatTile>
-        <Link href="/pending-requests" className="block">
+        <Link href="/pending-requests" className="block h-full">
           <StatTile label="Pending Evaluations" value={dash.pending} tone={dash.pending > 0 ? "warn" : "default"} hint={<span className="inline-flex items-center gap-1 text-brand-700 font-medium">Open the queue <ArrowRight className="h-3.5 w-3.5" /></span>} />
         </Link>
         <StatTile label="Total Approved KPIs" value={dash.approved} tone="good" hint="Approved + Adjusted" />
