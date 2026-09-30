@@ -60,10 +60,8 @@ async function createKpi(page, { name, target, actual, weight, evidencePath }) {
   await page.click('button[aria-label="Create KPI"]');
   await page.waitForSelector("#name");
   await page.fill("#name", name);
-  await page.selectOption("#category", "PROJECT");
   await page.fill("#target", String(target));
   await page.fill("#actual", String(actual));
-  await page.fill("#unit", "BDT");
   await page.fill("#weight", String(weight));
   await page.fill("#remarks", `Automated smoke test submission (${RUN}).`);
   await page.selectOption("#approverId", { index: 1 });
@@ -98,10 +96,8 @@ try {
     const submitBtn = page.locator('button[form="kpi-form"]');
     check("Submit disabled while form incomplete (AC-09)", await submitBtn.isDisabled());
     await page.fill("#name", K.approve);
-    await page.selectOption("#category", "PROJECT");
     await page.fill("#target", "500000");
     await page.fill("#actual", "610000");
-    await page.fill("#unit", "BDT");
     await page.fill("#weight", "15");
     await page.fill("#remarks", `Automated smoke test submission (${RUN}).`);
     check("Achievement auto-calculated 122.00% (AC-10)", (await page.inputValue("#achievement")) === "122.00%", await page.inputValue("#achievement"));

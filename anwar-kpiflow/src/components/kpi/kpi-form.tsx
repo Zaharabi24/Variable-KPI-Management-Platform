@@ -53,12 +53,10 @@ export function KpiFormDrawer({
 
   const now = new Date(Date.now() + 6 * 3600 * 1000);
   const [name, setName] = React.useState(initial?.name ?? "");
-  const [category, setCategory] = React.useState(initial?.category ?? "");
   const [year, setYear] = React.useState(String(initial?.periodYear ?? now.getUTCFullYear()));
   const [month, setMonth] = React.useState(String(initial?.periodMonth ?? now.getUTCMonth() + 1));
   const [target, setTarget] = React.useState(initial ? String(initial.target) : "");
   const [actual, setActual] = React.useState(initial ? String(initial.actual) : "");
-  const [unit, setUnit] = React.useState(initial?.unit ?? "");
   const [weight, setWeight] = React.useState(initial ? String(initial.weight) : "");
   const [remarks, setRemarks] = React.useState(initial?.remarks ?? "");
   const [approverId, setApproverId] = React.useState(initial?.approverId ?? (approvers.length === 1 ? approvers[0].id : ""));
@@ -74,7 +72,6 @@ export function KpiFormDrawer({
   const w = Number(weight);
   const valid =
     name.trim().length >= 2 &&
-    !!category &&
     t > 0 &&
     actual !== "" && a >= 0 &&
     w > 0 && w <= 100 &&
@@ -135,13 +132,6 @@ export function KpiFormDrawer({
         </Field>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="KPI Category" htmlFor="category" required error={e.category}>
-            <Select id="category" name="category" value={category} onChange={(ev) => setCategory(ev.target.value)} invalid={!!e.category}>
-              <option value="" disabled>Select category</option>
-              <option value="PROJECT">Project KPI</option>
-              <option value="PEOPLE_CULTURE">People &amp; Culture KPI</option>
-            </Select>
-          </Field>
           <div>
             <span className="label">KPI Period<span className="text-red-500 ml-0.5">*</span></span>
             <div className="grid grid-cols-[1fr_92px] gap-2">
@@ -155,24 +145,21 @@ export function KpiFormDrawer({
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-[1fr_1fr_110px] gap-4">
+        <div className="grid sm:grid-cols-3 gap-4">
           <Field label="Target" htmlFor="target" required error={e.target}>
             <Input id="target" name="target" type="number" inputMode="decimal" step="any" min="0" placeholder="500000" className="font-mono" value={target} onChange={(ev) => setTarget(ev.target.value)} invalid={!!e.target} />
           </Field>
           <Field label="Actual" htmlFor="actual" required error={e.actual}>
             <Input id="actual" name="actual" type="number" inputMode="decimal" step="any" min="0" placeholder="610000" className="font-mono" value={actual} onChange={(ev) => setActual(ev.target.value)} invalid={!!e.actual} />
           </Field>
-          <Field label="Unit" htmlFor="unit" hint="optional">
-            <Input id="unit" name="unit" placeholder="BDT" maxLength={20} value={unit} onChange={(ev) => setUnit(ev.target.value)} />
+          <Field label="KPI Weight (%)" htmlFor="weight" required error={e.weight}>
+            <Input id="weight" name="weight" type="number" inputMode="decimal" step="any" min="0" max="100" placeholder="15" className="font-mono" value={weight} onChange={(ev) => setWeight(ev.target.value)} invalid={!!e.weight} />
           </Field>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Achievement" htmlFor="achievement" hint="Actual ÷ Target × 100">
             <Input id="achievement" readOnly value={ach === null ? "" : fmtPct(ach)} placeholder="—" className="font-mono bg-ink-100/50" tabIndex={-1} />
-          </Field>
-          <Field label="KPI Weight (%)" htmlFor="weight" required error={e.weight}>
-            <Input id="weight" name="weight" type="number" inputMode="decimal" step="any" min="0" max="100" placeholder="15" className="font-mono" value={weight} onChange={(ev) => setWeight(ev.target.value)} invalid={!!e.weight} />
           </Field>
           <Field label="Score" htmlFor="score" hint="Calculated, no curve">
             <Input id="score" readOnly value={score === null ? "" : fmtNum(score)} placeholder="—" className="font-mono bg-ink-100/50" tabIndex={-1} />

@@ -14,7 +14,7 @@ import { flatten, invalid, type ActionState } from "./form";
 
 const kpiSchema = z.object({
   name: z.string().trim().min(2, "KPI name is required."),
-  category: z.enum(["PROJECT", "PEOPLE_CULTURE"], { message: "Select a KPI category." }),
+  category: z.enum(["PROJECT", "PEOPLE_CULTURE"]).optional(),
   periodYear: z.coerce.number().int().min(2020).max(2100),
   periodMonth: z.coerce.number().int().min(1).max(12),
   target: z.coerce.number({ message: "Target must be a number." }).positive("Target must be greater than zero."),
@@ -63,7 +63,7 @@ export async function createKpiAction(_prev: ActionState, formData: FormData): P
   const kpi = await db.kpi.create({
     data: {
       name: d.name,
-      category: d.category,
+      category: d.category ?? "PROJECT",
       periodYear: d.periodYear,
       periodMonth: d.periodMonth,
       target: d.target,
@@ -127,8 +127,8 @@ export async function resubmitKpiAction(_prev: ActionState, formData: FormData):
   const updated = await db.kpi.update({
     where: { id: kpi.id },
     data: {
-      name: d.name, category: d.category, periodYear: d.periodYear, periodMonth: d.periodMonth,
-      target: d.target, actual: d.actual, unit: d.unit, weight: d.weight, remarks: d.remarks,
+      name: d.name, category: d.category ?? kpi.category, periodYear: d.periodYear, periodMonth: d.periodMonth,
+      target: d.target, actual: d.actual, unit: d.unit || kpi.unit, weight: d.weight, remarks: d.remarks,
       approverId: d.approverId, achievement, calculatedScore: score, finalScore: null,
       status: KPI_STATUS.SUBMITTED, returnRemarks: null, decisionReason: null, decidedAt: null,
       submittedAt: new Date(), currentVersion: kpi.currentVersion + 1,
