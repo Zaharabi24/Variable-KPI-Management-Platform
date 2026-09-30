@@ -1,8 +1,17 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/** Renders overlays at document.body so they are positioned against the viewport, never a transformed ancestor. */
+function Portal({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+}
 
 function useEscape(open: boolean, onClose: () => void) {
   React.useEffect(() => {
@@ -38,6 +47,7 @@ export function Drawer({
   useEscape(open, onClose);
   if (!open) return null;
   return (
+    <Portal>
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-[1px]" onClick={onClose} aria-hidden />
       <div className={cn("relative h-full w-full bg-surface shadow-pop flex flex-col animate-slide-in", width)}>
@@ -54,6 +64,7 @@ export function Drawer({
         {footer && <div className="border-t border-ink-100 bg-white px-6 py-4">{footer}</div>}
       </div>
     </div>
+    </Portal>
   );
 }
 
@@ -76,20 +87,22 @@ export function Dialog({
   useEscape(open, onClose);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-[1px]" onClick={onClose} aria-hidden />
-      <div className={cn("relative w-full card p-6 shadow-pop animate-fade-up", width)}>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-[16px] font-semibold text-ink-900">{title}</h2>
-            {description && <p className="text-[13px] text-ink-500 mt-1">{description}</p>}
+    <Portal>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-ink-900/45 backdrop-blur-[2px]" onClick={onClose} aria-hidden />
+      <div className={cn("relative w-full card shadow-pop animate-fade-up flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)]", width)}>
+        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
+          <div className="min-w-0">
+            <h2 className="text-[17px] font-semibold text-ink-900 leading-6">{title}</h2>
+            {description && <p className="text-[13px] text-ink-500 mt-1.5 leading-5">{description}</p>}
           </div>
-          <button onClick={onClose} className="h-8 w-8 -mr-2 -mt-1 rounded-lg flex items-center justify-center text-ink-500 hover:bg-ink-100 hover:text-ink-900" aria-label="Close">
+          <button onClick={onClose} className="h-8 w-8 -mr-2 -mt-1 shrink-0 rounded-lg flex items-center justify-center text-ink-500 hover:bg-ink-100 hover:text-ink-900" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="mt-4">{children}</div>
+        <div className="px-6 pb-6 overflow-y-auto scroll-thin">{children}</div>
       </div>
     </div>
+    </Portal>
   );
 }
