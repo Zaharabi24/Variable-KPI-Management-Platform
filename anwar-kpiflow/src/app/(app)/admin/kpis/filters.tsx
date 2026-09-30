@@ -22,9 +22,9 @@ function useApply() {
 }
 
 export function KpiFilters({
-  departments, q, status, dept, role, deleted, allPeriods,
+  departments, q, status, dept, deleted, allPeriods,
 }: {
-  departments: { id: string; name: string }[]; q: string; status: string; dept: string; role: string; deleted: boolean; allPeriods: boolean;
+  departments: { id: string; name: string }[]; q: string; status: string; dept: string; deleted: boolean; allPeriods: boolean;
 }) {
   const apply = useApply();
   return (
@@ -40,11 +40,6 @@ export function KpiFilters({
       <Select aria-label="Status" className="lg:w-[150px]" value={status} onChange={(e) => apply({ status: e.target.value })}>
         <option value="">All statuses</option>
         {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-      </Select>
-      <Select aria-label="Owner role" className="lg:w-[170px]" value={role} onChange={(e) => apply({ role: e.target.value })}>
-        <option value="">Employees + Heads</option>
-        <option value="EMPLOYEE">Employees only</option>
-        <option value="DEPARTMENT_HEAD">Department Heads only</option>
       </Select>
       <button onClick={() => apply({ all: allPeriods ? "" : "1" })} className={cn("h-10 px-3.5 rounded-lg border text-[13px] font-medium whitespace-nowrap", allPeriods ? "bg-brand-700 border-brand-700 text-white" : "bg-white border-ink-200 text-ink-700 hover:bg-ink-100/60")}>
         {allPeriods ? "Showing all periods" : "Show all periods"}
