@@ -6,7 +6,7 @@ import { ROLES } from "@/lib/constants";
 import { InviteHeadButton } from "./invite-form";
 import { UserTable } from "../employees/user-table";
 
-export const metadata: Metadata = { title: "Department Heads" };
+export const metadata: Metadata = { title: "Department Head" };
 
 export default async function DepartmentHeadsPage() {
   await requireRole(ROLES.SUPER_ADMIN);
@@ -29,7 +29,7 @@ export default async function DepartmentHeadsPage() {
   return (
     <>
       <PageHeader
-        title="Department Heads"
+        title="Department Head"
         subtitle="Approvers, listed by department. A department may have several heads; each sees the same department queue."
         action={<InviteHeadButton units={units} departments={departments} />}
       />

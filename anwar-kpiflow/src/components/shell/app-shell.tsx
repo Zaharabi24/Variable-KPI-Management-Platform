@@ -17,7 +17,7 @@ const TITLES: [string, string][] = [
   ["/my-kpi", "My KPI"],
   ["/performance", "Performance Summary"],
   ["/profile", "Profile"],
-  ["/admin/department-heads", "Department Heads"],
+  ["/admin/department-heads", "Department Head"],
   ["/admin/employees", "Employees"],
   ["/admin/kpis", "All KPIs and Approvals"],
   ["/admin/versions", "Version Control and History"],

@@ -57,7 +57,7 @@ export function navFor(role: Role, pendingCount: number): { section: string; ite
     {
       section: "Administration",
       items: [
-        { href: "/admin/department-heads", label: "Department Heads", icon: UserCog },
+        { href: "/admin/department-heads", label: "Department Head", icon: UserCog },
         { href: "/admin/employees", label: "Employees", icon: Users },
         { href: "/admin/kpis", label: "All KPIs and Approvals", icon: ListChecks },
         { href: "/admin/versions", label: "Version Control and History", icon: History },
