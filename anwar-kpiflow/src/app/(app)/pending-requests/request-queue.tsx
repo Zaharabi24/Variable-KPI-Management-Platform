@@ -15,7 +15,7 @@ export type RequestItem = {
   id: string; name: string; category: string; status: string; target: number; actual: number; unit: string; weight: number;
   achievement: number; calculatedScore: number; finalScore: number | null; remarks: string; dataSource: string;
   periodYear: number; periodMonth: number; submittedAt: string; currentVersion: number;
-  owner: { id: string; fullName: string; employeeId: string; designation: string | null; department: string | null };
+  owner: { id: string; fullName: string; employeeId: string; designation: string | null; department: string | null; departmentId: string | null };
   approver: { fullName: string };
   evidence: { id: string; fileName: string; sha256: string; size: number }[];
   versions: { id: string; versionNo: number; action: string; changes: string; reason: string | null; createdAt: string; changedBy: { fullName: string } }[];
@@ -23,9 +23,16 @@ export type RequestItem = {
 };
 
 /** FR-REV-01..04 / Section 15.7 — queue grid with search by Employee Name or Employee ID, employee filter, and the review drawer. */
-export function RequestQueue({ items, openId, allPeriods, scopeLabel }: { items: RequestItem[]; openId: string | null; allPeriods: boolean; scopeLabel: string }) {
+export function RequestQueue({
+  items, openId, allPeriods, scopeLabel, departments,
+}: {
+  items: RequestItem[]; openId: string | null; allPeriods: boolean; scopeLabel: string;
+  /** Super Admin only: enables the department filter and per-department counts (FR-REV-09). */
+  departments?: { id: string; name: string }[];
+}) {
   const [q, setQ] = React.useState("");
   const [employee, setEmployee] = React.useState("");
+  const [dept, setDept] = React.useState("");
   // The open request is held as a snapshot so the drawer stays mounted (and can show its
   // confirmation) even after a decision removes the item from the revalidated list.
   const [active, setActive] = React.useState<RequestItem | null>(() => items.find((i) => i.id === openId) ?? null);
@@ -42,10 +49,15 @@ export function RequestQueue({ items, openId, allPeriods, scopeLabel }: { items:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId]);
 
-  const employees = Array.from(new Map(items.map((i) => [i.owner.id, i.owner])).values()).sort((a, b) => a.fullName.localeCompare(b.fullName));
+  const inDept = (i: RequestItem) => !dept || i.owner.departmentId === dept;
+  const employees = Array.from(new Map(items.filter(inDept).map((i) => [i.owner.id, i.owner])).values()).sort((a, b) => a.fullName.localeCompare(b.fullName));
+  const deptCounts = departments
+    ? departments.map((d) => ({ ...d, count: items.filter((i) => i.owner.departmentId === d.id).length })).filter((d) => d.count > 0)
+    : [];
   const needle = q.trim().toLowerCase();
   const visible = items.filter(
     (i) =>
+      inDept(i) &&
       (!employee || i.owner.id === employee) &&
       (!needle || i.owner.fullName.toLowerCase().includes(needle) || i.owner.employeeId.toLowerCase().includes(needle) || i.name.toLowerCase().includes(needle)),
   );
@@ -74,6 +86,12 @@ export function RequestQueue({ items, openId, allPeriods, scopeLabel }: { items:
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
             <Input aria-label="Search by Employee Name or Employee ID" placeholder="Search by Employee Name or Employee ID" className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
+          {departments && (
+            <Select aria-label="Department" className="md:w-[210px]" value={dept} onChange={(e) => { setDept(e.target.value); setEmployee(""); }}>
+              <option value="">All departments</option>
+              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </Select>
+          )}
           <Select aria-label="Employee" className="md:w-[220px]" value={employee} onChange={(e) => setEmployee(e.target.value)}>
             <option value="">All employees</option>
             {employees.map((e) => <option key={e.id} value={e.id}>{e.fullName} · {e.employeeId}</option>)}
@@ -81,8 +99,22 @@ export function RequestQueue({ items, openId, allPeriods, scopeLabel }: { items:
           <button onClick={toggleAll} className={cn("h-10 px-3.5 rounded-lg border text-[13px] font-medium transition-colors", allPeriods ? "bg-brand-700 border-brand-700 text-white" : "bg-white border-ink-200 text-ink-700 hover:bg-ink-100/60")}>
             {allPeriods ? "Showing all periods" : "Show all periods"}
           </button>
-          <span className="md:ml-auto text-[12.5px] text-ink-400">{scopeLabel}</span>
+          <span className="md:ml-auto text-[12.5px] text-ink-400">{dept ? departments?.find((d) => d.id === dept)?.name : scopeLabel}</span>
         </div>
+
+        {departments && deptCounts.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-ink-100 bg-surface/60">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-500 mr-1">By department</span>
+            <button onClick={() => { setDept(""); setEmployee(""); }} className={cn("h-7 px-3 rounded-full text-[12px] font-medium border transition-colors", !dept ? "bg-brand-700 border-brand-700 text-white" : "bg-white border-ink-200 text-ink-700 hover:border-ink-300")}>
+              All · {items.length}
+            </button>
+            {deptCounts.map((d) => (
+              <button key={d.id} onClick={() => { setDept(d.id); setEmployee(""); }} className={cn("h-7 px-3 rounded-full text-[12px] font-medium border transition-colors", dept === d.id ? "bg-brand-700 border-brand-700 text-white" : "bg-white border-ink-200 text-ink-700 hover:border-ink-300")}>
+                {d.name} · {d.count}
+              </button>
+            ))}
+          </div>
+        )}
 
         {visible.length === 0 ? (
           <EmptyState icon={<Inbox className="h-5 w-5" />} title={items.length === 0 ? "No pending requests" : "No requests match"} description={items.length === 0 ? "Every submitted KPI in this period has been reviewed." : "Try another name, Employee ID or period."} />
@@ -97,8 +129,11 @@ export function RequestQueue({ items, openId, allPeriods, scopeLabel }: { items:
                 <h3 className="mt-3 text-[15px] font-semibold text-ink-900 leading-snug">{r.name}</h3>
                 <div className="mt-1.5 text-[13px] text-ink-700">{r.owner.fullName}</div>
                 <div className="text-[12px] text-ink-400">
-                  <span className="font-mono">{r.owner.employeeId}</span> · {r.owner.designation ?? "Employee"}{r.owner.department ? ` · ${r.owner.department}` : ""}
+                  <span className="font-mono">{r.owner.employeeId}</span> · {r.owner.designation ?? "Employee"}
                 </div>
+                {r.owner.department && (
+                  <div className="mt-1.5"><Pill tone="brand">{r.owner.department}</Pill></div>
+                )}
                 <div className="mt-2 text-[12px] text-ink-400">{MONTHS_SHORT[r.periodMonth - 1]} {r.periodYear} · weight {r.weight}%</div>
                 <button onClick={() => setActive(r)} className="mt-4 h-9 w-full rounded-lg bg-brand-800 text-white text-[13px] font-medium hover:bg-brand-900 transition-colors">
                   View Request

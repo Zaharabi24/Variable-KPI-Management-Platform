@@ -21,6 +21,7 @@ export default async function PendingRequestsPage({ searchParams }: { searchPara
     ? {}
     : { OR: [{ approverId: user.id }, { owner: { departmentId: user.departmentId, role: ROLES.EMPLOYEE } }], NOT: { ownerId: user.id } };
 
+  const departments = isSuperAdmin(user) ? await db.department.findMany({ orderBy: { name: "asc" } }) : [];
   const kpis = await db.kpi.findMany({
     where: {
       ...scope,
@@ -41,7 +42,7 @@ export default async function PendingRequestsPage({ searchParams }: { searchPara
     id: k.id, name: k.name, category: k.category, status: k.status, target: k.target, actual: k.actual, unit: k.unit, weight: k.weight,
     achievement: k.achievement, calculatedScore: k.calculatedScore, finalScore: k.finalScore, remarks: k.remarks, dataSource: k.dataSource,
     periodYear: k.periodYear, periodMonth: k.periodMonth, submittedAt: k.submittedAt.toISOString(), currentVersion: k.currentVersion,
-    owner: { id: k.owner.id, fullName: k.owner.fullName, employeeId: k.owner.employeeId, designation: k.owner.designation, department: k.owner.department?.name ?? null },
+    owner: { id: k.owner.id, fullName: k.owner.fullName, employeeId: k.owner.employeeId, designation: k.owner.designation, department: k.owner.department?.name ?? null, departmentId: k.owner.departmentId },
     approver: { fullName: k.approver.fullName },
     evidence: k.evidence.map((e) => ({ id: e.id, fileName: e.fileName, sha256: e.sha256, size: e.size })),
     versions: k.versions.map((v) => ({ id: v.id, versionNo: v.versionNo, action: v.action, changes: v.changes, reason: v.reason, createdAt: v.createdAt.toISOString(), changedBy: { fullName: v.changedBy.fullName } })),
@@ -55,7 +56,13 @@ export default async function PendingRequestsPage({ searchParams }: { searchPara
         subtitle={`${items.length} request${items.length === 1 ? "" : "s"} waiting — oldest first · ${allPeriods ? "all periods" : period.label}`}
         action={<PeriodFilter period={period} />}
       />
-      <RequestQueue items={items} openId={sp.open ?? null} allPeriods={allPeriods} scopeLabel={isSuperAdmin(user) ? "All departments" : user.department?.name ?? ""} />
+      <RequestQueue
+        items={items}
+        openId={sp.open ?? null}
+        allPeriods={allPeriods}
+        scopeLabel={isSuperAdmin(user) ? "All departments" : user.department?.name ?? ""}
+        departments={isSuperAdmin(user) ? departments.map((d) => ({ id: d.id, name: d.name })) : undefined}
+      />
     </>
   );
 }
