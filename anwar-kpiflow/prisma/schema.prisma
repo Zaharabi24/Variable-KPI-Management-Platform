@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model BusinessUnit {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+model User {
+  id             String        @id @default(cuid())
+  fullName       String
+  email          String        @unique
+  employeeId     String        @unique
+  role           String // SUPER_ADMIN | DEPARTMENT_HEAD | EMPLOYEE
+  designation    String?
+  corporatePhone String?
+  passwordHash   String?
+  status         String        @default("PENDING_SETUP") // PENDING_SETUP | ACTIVE | DEACTIVATED
+  failedLogins   Int           @default(0)
+  lockedUntil    DateTime?
+  businessUnitId String?
+  departmentId   String?
+  businessUnit   BusinessUnit? @relation(fields: [businessUnitId], references: [id])
+  department     Department?   @relation(fields: [departmentId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  ownedKpis       Kpi[]            @relation("KpiOwner")
+  approvingKpis   Kpi[]            @relation("KpiApprover")
+  tokens          AccountToken[]   @relation("TokenUser")
+  sentInvitations AccountToken[]   @relation("TokenInviter")
+  versions        KpiVersion[]
+  decisions       ReviewDecision[]
+  auditLogs       AuditLog[]
+  evidenceFiles   EvidenceFile[]
+}
+
+model AccountToken {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  type        String // SIGNUP | INVITATION | RESET
+  userId      String
+  user        User      @relation("TokenUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedById String?
+  invitedBy   User?     @relation("TokenInviter", fields: [invitedById], references: [id])
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Kpi {
+  id              String    @id @default(cuid())
+  name            String
+  category        String // PROJECT | PEOPLE_CULTURE
+  kpiType         String    @default("VARIABLE")
+  periodYear      Int
+  periodMonth     Int
+  target          Float
+  actual          Float
+  unit            String    @default("")
+  weight          Float
+  achievement     Float
+  calculatedScore Float
+  finalScore      Float?
+  status          String // SUBMITTED | RETURNED | APPROVED | ADJUSTED | REJECTED
+  remarks         String
+  dataSource      String    @default("verified_manual")
+  ownerId         String
+  owner           User      @relation("KpiOwner", fields: [ownerId], references: [id])
+  approverId      String
+  approver        User      @relation("KpiApprover", fields: [approverId], references: [id])
+  currentVersion  Int       @default(1)
+  returnRemarks   String?
+  decisionReason  String?
+  decidedAt       DateTime?
+  submittedAt     DateTime  @default(now())
+  deletedAt       DateTime?
+  deleteReason    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  evidence  EvidenceFile[]
+  versions  KpiVersion[]
+  decisions ReviewDecision[]
+}
+
+model EvidenceFile {
+  id           String   @id @default(cuid())
+  kpiId        String
+  kpi          Kpi      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  fileName     String
+  storedName   String
+  mimeType     String
+  size         Int
+  sha256       String
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model KpiVersion {
+  id          String   @id @default(cuid())
+  kpiId       String
+  kpi         Kpi      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  versionNo   Int
+  action      String // SUBMIT | RESUBMIT | APPROVE | ADJUST | RETURN | REJECT | EDIT | DELETE
+  snapshot    String // JSON of the KPI record after the action
+  changes     String // JSON array of { field, oldValue, newValue }
+  reason      String?
+  changedById String
+  changedBy   User     @relation(fields: [changedById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([kpiId, versionNo])
+}
+
+model ReviewDecision {
+  id         String   @id @default(cuid())
+  kpiId      String
+  kpi        Kpi      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  reviewerId String
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
+  decision   String // APPROVE | ADJUST | RETURN | REJECT | EDIT | DELETE
+  reason     String?
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  details    String   @default("{}")
+  createdAt  DateTime @default(now())
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  toEmail   String
+  subject   String
+  body      String
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}

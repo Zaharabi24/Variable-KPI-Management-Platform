@@ -1,0 +1,41 @@
+import Link from "next/link";
+import { Logo } from "@/components/shell/logo";
+
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
+      <aside className="hidden lg:flex flex-col justify-between bg-brand-950 text-white p-12 relative overflow-hidden">
+        <div className="absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-brand-500/20 blur-3xl" aria-hidden />
+        <div className="absolute -bottom-40 -left-24 h-[380px] w-[380px] rounded-full bg-brand-300/10 blur-3xl" aria-hidden />
+        <Logo variant="dark" size="lg" />
+        <div className="relative max-w-md">
+          <p className="text-[12px] uppercase tracking-[0.16em] text-brand-200/80 mb-4">Variable KPI · Phase 01</p>
+          <h2 className="text-[34px] leading-[1.15] font-semibold tracking-tight">
+            Every score traceable from target to approval.
+          </h2>
+          <p className="mt-4 text-[15px] text-white/65 leading-7">
+            One guided flow for Employees, Department Heads and Upper Management across all Anwar Group business units.
+            Target → Actual → Evidence → Score → Review → Approval.
+          </p>
+          <ol className="mt-8 grid grid-cols-3 gap-2 text-[12px]">
+            {["Target", "Actual", "Evidence", "Score", "Review", "Approval"].map((s, i) => (
+              <li key={s} className="flex items-center gap-2 rounded-lg bg-white/6 border border-white/10 px-3 py-2">
+                <span className="h-5 w-5 rounded-full bg-brand-400/30 text-brand-100 flex items-center justify-center text-[11px] font-semibold">{i + 1}</span>
+                {s}
+              </li>
+            ))}
+          </ol>
+        </div>
+        <p className="relative text-[12px] text-white/40">© {new Date().getFullYear()} Anwar Group of Industries · Anwar KPIFlow prototype</p>
+      </aside>
+      <main className="flex flex-col">
+        <div className="lg:hidden p-6">
+          <Link href="/login"><Logo /></Link>
+        </div>
+        <div className="flex-1 flex items-center justify-center px-6 py-10">
+          <div className="w-full max-w-[440px] animate-fade-up">{children}</div>
+        </div>
+      </main>
+    </div>
+  );
+}
