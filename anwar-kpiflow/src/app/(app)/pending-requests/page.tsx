@@ -32,7 +32,7 @@ export default async function PendingRequestsPage({ searchParams }: { searchPara
     include: {
       owner: { include: { department: true } },
       approver: true,
-      evidence: true,
+      evidence: { omit: { data: true } },
       versions: { include: { changedBy: true }, orderBy: { versionNo: "asc" } },
     },
     orderBy: { submittedAt: "asc" }, // oldest first (FR-REV-01)

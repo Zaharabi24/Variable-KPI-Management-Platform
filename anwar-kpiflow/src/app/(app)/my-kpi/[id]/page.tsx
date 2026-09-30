@@ -17,7 +17,7 @@ export default async function KpiDetailPage({ params }: { params: Promise<{ id: 
     include: {
       owner: { include: { department: true } },
       approver: true,
-      evidence: { orderBy: { createdAt: "asc" } },
+      evidence: { orderBy: { createdAt: "asc" }, omit: { data: true } },
       versions: { include: { changedBy: true }, orderBy: { versionNo: "asc" } },
     },
   });

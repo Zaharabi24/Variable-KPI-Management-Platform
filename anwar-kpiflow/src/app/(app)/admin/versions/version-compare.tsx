@@ -64,7 +64,7 @@ export function VersionCompare({ versions }: { versions: V[] }) {
             return (
               <tr key={r.field} className={cn("border-t border-ink-100", changed && "bg-amber-50/60")}>
                 <td className="py-2 pr-3 text-ink-500">{FIELD_LABELS[r.field] ?? r.field}{changed && <span className="ml-2 text-[10px] font-semibold uppercase text-amber-700">changed</span>}</td>
-                <td className={cn("py-2 px-3 text-right font-mono tnum", changed ? "text-ink-400 line-through" : "text-ink-700")}>{fmt(r.field, r.a)}</td>
+                <td className={cn("py-2 px-3 text-right font-mono tnum", changed ? "text-ink-500" : "text-ink-700")}>{fmt(r.field, r.a)}</td>
                 <td className={cn("py-2 pl-3 text-right font-mono tnum", changed ? "text-ink-900 font-semibold" : "text-ink-700")}>{fmt(r.field, r.b)}</td>
               </tr>
             );

@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_UNPOOLED")
+  url       = env("POSTGRES_PRISMA_URL") // pooled, with pgbouncer=true (Neon via Vercel Marketplace)
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model BusinessUnit {

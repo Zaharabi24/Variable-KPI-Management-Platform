@@ -20,7 +20,7 @@ export type StoredFile = {
 
 export function validateEvidence(file: File): string | null {
   if (!file || file.size === 0) return "Evidence file is required.";
-  if (file.size > EVIDENCE_MAX_BYTES) return "Evidence file must be 10 MB or smaller.";
+  if (file.size > EVIDENCE_MAX_BYTES) return "Evidence file must be 4 MB or smaller.";
   const type = file.type || "application/octet-stream";
   if (!EVIDENCE_ALLOWED_TYPES.includes(type)) {
     return "Allowed evidence types: PDF, PNG, JPG, Excel, Word, CSV or text.";

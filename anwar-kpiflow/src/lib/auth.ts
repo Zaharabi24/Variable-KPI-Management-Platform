@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { db } from "./db";
 import { readSession } from "./session";
@@ -18,8 +19,8 @@ export type CurrentUser = {
   department: { id: string; name: string; code: string } | null;
 };
 
-/** Access guard (Section 17.1): resolves the signed-in user or null. */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+/** Access guard (Section 17.1): resolves the signed-in user or null. Memoised per request (React cache) so the layout, page and actions share one lookup. */
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const session = await readSession();
   if (!session) return null;
   const user = await db.user.findUnique({
@@ -28,7 +29,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   });
   if (!user || user.status !== USER_STATUS.ACTIVE) return null;
   return user as CurrentUser;
-}
+});
 
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();

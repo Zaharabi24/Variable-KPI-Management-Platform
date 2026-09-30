@@ -42,7 +42,7 @@ export default async function OutboxPage() {
                   <div className="text-[12px] text-ink-400 tnum">{fmtDateTime(m.createdAt)}</div>
                 </div>
                 <div className="text-[12.5px] text-ink-500 mt-0.5">To: <span className="font-mono">{m.toEmail}</span></div>
-                <pre className="mt-3 whitespace-pre-wrap font-sans text-[13px] text-ink-700 leading-6 bg-surface rounded-lg p-3 border border-ink-100">{m.body}</pre>
+                <pre className="mt-3 whitespace-pre-wrap break-all font-sans text-[13px] text-ink-700 leading-6 bg-surface rounded-lg p-3 border border-ink-100">{m.body}</pre>
                 {m.link && (
                   <Link href={m.link.replace(/^https?:\/\/[^/]+/, "")} className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-700 hover:underline">
                     Open secure link <ExternalLink className="h-3.5 w-3.5" />

@@ -16,8 +16,9 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const period = parsePeriod(sp);
   const superAdmin = isSuperAdmin(user);
-  const departments = superAdmin ? await db.department.findMany({ orderBy: { name: "asc" } }) : [];
-  const deptId = superAdmin ? (sp.dept && departments.some((d) => d.id === sp.dept) ? sp.dept : departments[0]?.id ?? null) : user.departmentId;
+  const departments = superAdmin ? await db.department.findMany({ orderBy: { name: "asc" }, include: { _count: { select: { users: { where: { role: ROLES.EMPLOYEE, status: "ACTIVE" } } } } } }) : [];
+  const busiest = [...departments].sort((a, b) => b._count.users - a._count.users)[0];
+  const deptId = superAdmin ? (sp.dept && departments.some((d) => d.id === sp.dept) ? sp.dept : busiest?.id ?? null) : user.departmentId;
   const deptName = superAdmin ? departments.find((d) => d.id === deptId)?.name : user.department?.name;
   const rows = deptId ? await departmentLeaderboard(deptId, period) : [];
 

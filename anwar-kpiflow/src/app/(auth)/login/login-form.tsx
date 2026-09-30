@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, PasswordInput, FormAlert, Select } from "@/components/ui/field";
 import type { DemoAccount } from "@/lib/demo";
 
-export function LoginForm({ setupDone, demo }: { setupDone: boolean; demo: DemoAccount[] }) {
+export function LoginForm({ setupDone, demo, next }: { setupDone: boolean; demo: DemoAccount[]; next?: string }) {
   const [state, action, pending] = useActionState(loginAction, null);
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -38,6 +38,7 @@ export function LoginForm({ setupDone, demo }: { setupDone: boolean; demo: DemoA
       <p className="text-[14px] text-ink-500 mt-1.5">Use your company email and password.</p>
 
       <form action={action} className="mt-7 space-y-4" noValidate>
+        {next && <input type="hidden" name="next" value={next} />}
         {setupDone && <FormAlert kind="success">Password created. Sign in to continue.</FormAlert>}
         {state?.message && <FormAlert kind="error">{state.message}</FormAlert>}
 

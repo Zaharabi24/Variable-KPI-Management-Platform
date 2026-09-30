@@ -32,7 +32,7 @@ export async function performanceSummary(userId: string, p: PeriodRange) {
   const prev = previousPeriod(p);
   const all = await db.kpi.findMany({
     where: { ownerId: userId, deletedAt: null, periodYear: { in: [p.year, prev.year] } },
-    include: { approver: true, evidence: true },
+    include: { approver: true, evidence: { omit: { data: true } } },
     orderBy: [{ periodMonth: "asc" }, { submittedAt: "asc" }],
   });
   const current = all.filter((k) => inPeriod(k, p));

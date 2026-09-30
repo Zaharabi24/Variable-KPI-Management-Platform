@@ -8,7 +8,7 @@ Variable KPI & Performance Management System for Anwar Group of Industries, buil
 
 ```bash
 cd anwar-kpiflow
-cp .env.example .env # set DATABASE_URL / DATABASE_URL_UNPOOLED to a Postgres database
+cp .env.example .env # set POSTGRES_PRISMA_URL / POSTGRES_URL_NON_POOLING to a Postgres database
 npm install          # also generates the Prisma client
 npm run setup        # creates the schema and seeds demo data
 npm run dev          # http://localhost:3000
@@ -84,7 +84,7 @@ OI-01 two Variable KPI categories · OI-02 category and period captured · OI-03
 
 ## Deployment (Vercel)
 
-The project is linked to Vercel project `variable-kpi-management-platform` with a Neon Postgres database from the Vercel Marketplace. `vercel-build` runs `prisma generate && prisma db push && next build`, so the schema is applied on every deploy. Seed the hosted database once from your machine with the Vercel env pulled locally:
+The project is linked to Vercel project `variable-kpi-management-platform` with a Neon Postgres database from the Vercel Marketplace (it provides POSTGRES_PRISMA_URL and POSTGRES_URL_NON_POOLING). `vercel-build` runs `prisma generate && prisma db push && next build`, so the schema is applied on every deploy. Seed the hosted database once from your machine with the Vercel env pulled locally:
 
 ```bash
 vercel env pull .env.local --yes

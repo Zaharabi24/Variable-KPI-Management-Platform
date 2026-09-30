@@ -18,7 +18,7 @@ export default async function VersionsPage({ searchParams }: { searchParams: Pro
   const q = sp.q ?? "";
 
   const candidates = await db.kpi.findMany({
-    where: q ? { OR: [{ name: { contains: q } }, { owner: { fullName: { contains: q } } }, { owner: { employeeId: { contains: q } } }] } : {},
+    where: q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { owner: { fullName: { contains: q, mode: "insensitive" } } }, { owner: { employeeId: { contains: q, mode: "insensitive" } } }] } : {},
     include: { owner: true, _count: { select: { versions: true } } },
     orderBy: { updatedAt: "desc" },
     take: 40,

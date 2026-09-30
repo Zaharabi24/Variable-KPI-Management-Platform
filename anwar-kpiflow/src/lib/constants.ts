@@ -88,7 +88,7 @@ export const SESSION_TTL_HOURS = 12;
 export const MAX_FAILED_LOGINS = 5;
 export const LOCKOUT_MINUTES = 15;
 
-export const EVIDENCE_MAX_BYTES = 10 * 1024 * 1024;
+export const EVIDENCE_MAX_BYTES = 4 * 1024 * 1024; // Vercel serverless request limit is 4.5 MB
 export const EVIDENCE_ALLOWED_TYPES = [
   "application/pdf",
   "image/png",

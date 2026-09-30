@@ -16,7 +16,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const k = await db.kpi.findUnique({
     where: { id },
-    include: { owner: { include: { department: true, businessUnit: true } }, approver: true, evidence: true, versions: { include: { changedBy: true }, orderBy: { versionNo: "asc" } } },
+    include: { owner: { include: { department: true, businessUnit: true } }, approver: true, evidence: { omit: { data: true } }, versions: { include: { changedBy: true }, orderBy: { versionNo: "asc" } } },
   });
   if (!k || !canViewKpi(user, k)) return NextResponse.json({ error: "Not found" }, { status: 404 });
   await audit(user.id, "REPORT_DOWNLOADED", "Kpi", k.id);

@@ -200,12 +200,19 @@ export function AdjustmentHistory({ versions, title = "Adjustment History" }: { 
                 {v.reason && <p className="mt-1.5 text-[13px] text-ink-700 bg-surface border border-ink-100 rounded-lg px-3 py-2"><span className="font-medium">Reason:</span> {v.reason}</p>}
                 {changes.length > 0 && (
                   <table className="mt-2 w-full text-[12.5px]">
+                    <thead>
+                      <tr className="text-[10.5px] uppercase tracking-wider text-ink-400">
+                        <th className="text-left font-semibold pb-1 pr-3">Field</th>
+                        <th className="text-left font-semibold pb-1 pr-3">Before</th>
+                        <th className="text-left font-semibold pb-1">After</th>
+                      </tr>
+                    </thead>
                     <tbody>
                       {changes.map((c, i) => (
-                        <tr key={i} className="border-t border-ink-100 first:border-0">
+                        <tr key={i} className="border-t border-ink-100">
                           <td className="py-1.5 pr-3 text-ink-500 whitespace-nowrap">{FIELD_LABELS[c.field] ?? c.field}</td>
-                          <td className="py-1.5 pr-3 font-mono tnum text-ink-400 line-through">{fmtVal(c.field, c.oldValue)}</td>
-                          <td className="py-1.5 font-mono tnum text-ink-900 font-medium">{fmtVal(c.field, c.newValue)}</td>
+                          <td className="py-1.5 pr-3 font-mono tnum text-ink-500">{fmtVal(c.field, c.oldValue)}</td>
+                          <td className="py-1.5 font-mono tnum text-ink-900 font-semibold">{fmtVal(c.field, c.newValue)}</td>
                         </tr>
                       ))}
                     </tbody>

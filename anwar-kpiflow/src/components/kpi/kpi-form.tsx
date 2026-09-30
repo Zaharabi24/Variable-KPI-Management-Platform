@@ -126,6 +126,9 @@ export function KpiFormDrawer({
           </FormAlert>
         )}
         {state?.message && !state.ok && <FormAlert kind="error">{state.message}</FormAlert>}
+        {approvers.length === 0 && (
+          <FormAlert kind="info">No Approval Person is available yet: your department has no Department Head. Ask the Super Admin to invite one before submitting.</FormAlert>
+        )}
 
         <Field label="KPI" htmlFor="name" required error={e.name}>
           <Input id="name" name="name" placeholder="e.g. Upsell Revenue" value={name} onChange={(ev) => setName(ev.target.value)} invalid={!!e.name} />
@@ -166,7 +169,7 @@ export function KpiFormDrawer({
           </Field>
         </div>
 
-        <Field label="Evidence Report" required={!isEdit} error={e.evidence} hint={isEdit ? `Current: ${initial!.evidenceNames.join(", ") || "none"} · upload a new file to replace it in this version` : "PDF, image, Excel, Word, CSV or text · up to 10 MB"}>
+        <Field label="Evidence Report" required={!isEdit} error={e.evidence} hint={isEdit ? `Current: ${initial!.evidenceNames.join(", ") || "none"} · upload a new file to replace it in this version` : "PDF, image, Excel, Word, CSV or text · up to 4 MB"}>
           <div
             onDragOver={(ev) => { ev.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}

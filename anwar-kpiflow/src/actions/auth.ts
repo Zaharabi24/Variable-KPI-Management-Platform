@@ -147,12 +147,13 @@ export async function setupPasswordAction(_prev: ActionState, formData: FormData
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter your company email."),
   password: z.string().min(1, "Enter your password."),
+  next: z.string().optional(),
 });
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(formData, flatten(parsed.error));
-  const { email, password } = parsed.data;
+  const { email, password, next } = parsed.data;
 
   const user = await db.user.findUnique({ where: { email } });
   const generic = { ok: false, message: "Incorrect email or password." };
@@ -182,7 +183,8 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
   await db.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null } });
   await createSession({ uid: user.id, role: user.role });
   await audit(user.id, "LOGIN", "User", user.id);
-  redirect(homeFor(user.role));
+  const safeNext = next && /^\/(?!\/)[\w\-./?=&%]*$/.test(next) && !next.startsWith("/login") ? next : null;
+  redirect(safeNext ?? homeFor(user.role));
 }
 
 export async function logoutAction() {

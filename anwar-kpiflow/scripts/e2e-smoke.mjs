@@ -19,7 +19,7 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = path.resolve(process.cwd(), "..", "docs", "screenshots");
 fs.mkdirSync(OUT, { recursive: true });
 const RUN = Date.now().toString().slice(-6);
-const T = 60000;
+const T = Number(process.env.E2E_TIMEOUT ?? 90000);
 
 const PW = { admin: "Admin@2026", head: "Head@2026", user: "User@2026" };
 const results = [];
@@ -58,7 +58,7 @@ async function login(ctx, email, password) {
 async function createKpi(page, { name, target, actual, weight, evidencePath }) {
   await page.goto(`${BASE}/my-kpi`);
   await page.click('button[aria-label="Create KPI"]');
-  await page.waitForSelector("#name");
+  await page.waitForSelector("#name", { timeout: T });
   await page.fill("#name", name);
   await page.fill("#target", String(target));
   await page.fill("#actual", String(actual));
@@ -85,14 +85,14 @@ try {
     const ctx = await browser.newContext(vp);
     const page = await login(ctx, "rafi.ahmed@anwargroup.net", PW.user);
     check("Employee lands on My KPI (AC-05)", page.url().endsWith("/my-kpi"), page.url());
-    await page.waitForSelector("text=Create KPI");
+    await page.waitForSelector("text=Create KPI", { timeout: T });
     check("Employee sees own KPI cards", (await page.locator("article").count()) >= 5);
     check("Create KPI (+) tile visible inside parent card (AC-08)", await page.locator('button[aria-label="Create KPI"]').isVisible());
     check("Employee sidebar has no Dashboard / Queue (8.2)", (await page.locator('a[href="/dashboard"]').count()) === 0 && (await page.locator('a[href="/pending-requests"]').count()) === 0);
     await shot(page, "10-employee-my-kpi.png");
 
     await page.click('button[aria-label="Create KPI"]');
-    await page.waitForSelector("#name");
+    await page.waitForSelector("#name", { timeout: T });
     const submitBtn = page.locator('button[form="kpi-form"]');
     check("Submit disabled while form incomplete (AC-09)", await submitBtn.isDisabled());
     await page.fill("#name", K.approve);
@@ -120,7 +120,7 @@ try {
 
     /* detail view */
     await page.locator(`article:has-text('${K.approve}')`).first().locator("text=View Details").click();
-    await page.waitForSelector("text=Calculation path");
+    await page.waitForSelector("text=Calculation path", { timeout: T });
     approveId = page.url().split("/").pop();
     const body = await page.locator("main").innerText();
     check("Detail shows Formula / Achievement / Calculated / Final / Weight (AC-14)", /formula/i.test(body) && /calculated score/i.test(body) && /final score/i.test(body) && /kpi weight/i.test(body));
@@ -130,7 +130,7 @@ try {
 
     /* performance summary */
     await page.goto(`${BASE}/performance?type=MONTHLY&month=9&year=2026`);
-    await page.waitForSelector("text=KPI Performance Records");
+    await page.waitForSelector("text=KPI Performance Records", { timeout: T });
     const heads = await page.locator("table thead th").allTextContents();
     check("Records table has exactly the ten BRD columns (AC-17)", heads.length === 10 && heads[0] === "KPI" && heads[9] === "Approval Person", heads.join(", "));
     const tiles = await page.locator("main").innerText();
@@ -141,6 +141,7 @@ try {
     check("Empty period shows a no-data message (AC-19)", /No KPIs for this month/.test(await page.locator("main").innerText()));
 
     await page.goto(`${BASE}/pending-requests`);
+    await page.waitForURL((u) => !u.pathname.includes("/pending-requests"), { timeout: T }).catch(() => {});
     check("Employee cannot open the review queue (6.1)", !page.url().includes("/pending-requests"), page.url());
     await ctx.close();
   }
@@ -150,11 +151,11 @@ try {
     const ctx = await browser.newContext(vp);
     const dh = await login(ctx, "nasrin.islam@anwargroup.net", PW.head);
     check("Department Head lands on Dashboard (AC-05)", dh.url().endsWith("/dashboard"), dh.url());
-    await dh.waitForSelector("text=Average Achievement");
+    await dh.waitForSelector("text=Average Achievement", { timeout: T });
     await shot(dh, "20-dh-dashboard.png");
 
     await dh.goto(`${BASE}/pending-requests?all=1`);
-    await dh.waitForSelector("text=requests waiting");
+    await dh.waitForSelector("text=requests waiting", { timeout: T });
     const queueText = await dh.locator("main").innerText();
     check("Queue shows Employee Name + Employee ID (AC-20)", /Rafi Ahmed/.test(queueText) && /AG-1042/.test(queueText));
     check("Queue excludes other departments (AC-06)", !/Tania Karim/.test(queueText) && !/Human Resources/.test(queueText) && !/Mehedi Hasan/.test(queueText));
@@ -166,7 +167,7 @@ try {
 
     // Approve
     await dh.locator(`main article:has-text('${K.approve}') button:has-text('View Request')`).click();
-    await dh.waitForSelector("button:has-text('Approve calculated')");
+    await dh.waitForSelector("button:has-text('Approve calculated')", { timeout: T });
     await shot(dh, "21-review-drawer.png");
     await dh.click("button:has-text('Approve calculated')");
     await dh.waitForSelector(`text=Approved "${K.approve}"`, { timeout: T });
@@ -175,7 +176,7 @@ try {
     // Adjust (reason required)
     await dh.locator(`main article:has-text('${K.adjust}') button:has-text('View Request')`).click();
     await dh.click("button:has-text('Apply adjustment')");
-    await dh.waitForSelector("#adj-score");
+    await dh.waitForSelector("#adj-score", { timeout: T });
     await dh.fill("#adj-score", "100");
     await dh.click("button:has-text('Apply adjustment and approve')");
     await dh.waitForSelector("text=A reason is required", { timeout: T });
@@ -195,7 +196,7 @@ try {
 
     // Leaderboard
     await dh.goto(`${BASE}/leaderboard?type=MONTHLY&month=9&year=2026`);
-    await dh.waitForSelector("text=Department ranking");
+    await dh.waitForSelector("text=Department ranking", { timeout: T });
     const lb = await dh.locator("main").innerText();
     check("Leaderboard ranks GA employees only, with rank numbers (AC-24)", /Rafi Ahmed/.test(lb) && /Sadia Noor/.test(lb) && !/Tania Karim/.test(lb));
     await shot(dh, "22-leaderboard.png");
@@ -203,7 +204,7 @@ try {
     // Department Head's own KPIs route to the Super Admin (OI-04)
     await dh.goto(`${BASE}/my-kpi`);
     await dh.click('button[aria-label="Create KPI"]');
-    await dh.waitForSelector("#approverId");
+    await dh.waitForSelector("#approverId", { timeout: T });
     const dhApprovers = await dh.locator("#approverId option:not([disabled])").allTextContents();
     check("Department Head's Approval Person = Super Admin (OI-04)", dhApprovers.length === 1 && /Sarwar/.test(dhApprovers[0]), dhApprovers.join("|"));
     await ctx.close();
@@ -214,17 +215,17 @@ try {
     const ctx = await browser.newContext(vp);
     const page = await login(ctx, "rafi.ahmed@anwargroup.net", PW.user);
     await page.locator(`article:has-text('${K.adjust}')`).first().locator("text=View Details").click();
-    await page.waitForSelector("text=Adjustment History");
+    await page.waitForSelector("text=Adjustment History", { timeout: T });
     const t = await page.locator("main").innerText();
     check("Employee sees adjusted final score + reason in Adjustment History (AC-15)", /Adjusted/.test(t) && /Inverse KPI/.test(t) && /Final Score/i.test(t) && /100/.test(t));
     await shot(page, "14-adjustment-history.png");
 
     await page.goto(`${BASE}/my-kpi`);
     await page.locator(`article:has-text('${K.ret}')`).first().locator("text=View Details").click();
-    await page.waitForSelector("text=Correct and resubmit");
+    await page.waitForSelector("text=Correct and resubmit", { timeout: T });
     check("Returned KPI shows approver remarks (FR-DET-06)", /distributor portal/.test(await page.locator("main").innerText()));
     await page.click("text=Correct and resubmit");
-    await page.waitForSelector("#kpi-form");
+    await page.waitForSelector("#kpi-form", { timeout: T });
     await page.fill("#actual", "12");
     await page.setInputFiles("#evidence", evidence);
     await page.click('button[form="kpi-form"]');
@@ -280,7 +281,7 @@ try {
     const link = await reg.locator(`li:has-text('${email}') a:has-text('Open secure link')`).first().getAttribute("href");
     check("Setup link delivered to Outbox (FR-AUTH-05)", !!link && link.includes("/setup-password?token="));
     await reg.goto(`${BASE}${link}`);
-    await reg.waitForSelector("#password");
+    await reg.waitForSelector("#password", { timeout: T });
     await reg.fill("#password", "Strong#123");
     await reg.fill("#confirm", "Strong#124");
     check("Mismatch message shown (AC-04)", (await reg.locator("text=do not match").count()) > 0);
@@ -312,7 +313,7 @@ try {
     const all = await sa.locator("main").innerText();
     check("Super Admin sees KPIs of every department incl. Department Heads (AC-25)", /Tania Karim/.test(all) && /Rafi Ahmed/.test(all) && /Dept Head/.test(all));
     await sa.goto(`${BASE}/admin/versions?kpi=${approveId}`);
-    await sa.waitForSelector("text=Compare");
+    await sa.waitForSelector("text=Compare", { timeout: T });
     const vt = await sa.locator("main").innerText();
     check("Version history lists v1 Submit and v2 Approve (AC-26)", /v1 · Submit/.test(vt) && /v2 · Approve/.test(vt));
     await shot(sa, "40-version-control.png");
@@ -349,6 +350,12 @@ try {
   failures++;
 } finally {
   await browser.close();
+  // Tidy up: the suite writes to the real database, so remove what it created (skip with KEEP_E2E_DATA=1).
+  if (!process.env.KEEP_E2E_DATA) {
+    const { spawnSync } = await import("node:child_process");
+    const r = spawnSync(process.execPath, [path.join(process.cwd(), "scripts", "e2e-cleanup.mjs")], { encoding: "utf-8" });
+    console.log((r.stdout || r.stderr || "").trim());
+  }
 }
 
 console.log(`\n${results.filter((r) => r.ok).length}/${results.length} checks passed${failures ? `, ${failures} FAILED` : ""}.`);

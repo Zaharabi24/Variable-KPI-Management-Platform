@@ -6,9 +6,9 @@ import { DEMO_ACCOUNTS } from "@/lib/demo";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ setup?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ setup?: string; next?: string }> }) {
   const user = await getCurrentUser();
   if (user) redirect(homeFor(user.role));
   const sp = await searchParams;
-  return <LoginForm setupDone={sp.setup === "done"} demo={DEMO_ACCOUNTS} />;
+  return <LoginForm setupDone={sp.setup === "done"} demo={DEMO_ACCOUNTS} next={sp.next ?? ""} />;
 }

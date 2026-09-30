@@ -17,7 +17,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
     role: ROLES.EMPLOYEE,
     ...(sp.dept ? { departmentId: sp.dept } : {}),
     ...(sp.bu ? { businessUnitId: sp.bu } : {}),
-    ...(sp.q ? { OR: [{ fullName: { contains: sp.q } }, { employeeId: { contains: sp.q } }, { email: { contains: sp.q } }] } : {}),
+    ...(sp.q ? { OR: [{ fullName: { contains: sp.q, mode: "insensitive" } }, { employeeId: { contains: sp.q, mode: "insensitive" } }, { email: { contains: sp.q, mode: "insensitive" } }] } : {}),
   };
   const [users, units, departments] = await Promise.all([
     db.user.findMany({
