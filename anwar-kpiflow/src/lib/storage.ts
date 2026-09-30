@@ -1,9 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
 import { EVIDENCE_ALLOWED_TYPES, EVIDENCE_MAX_BYTES } from "./constants";
 
-const ROOT = path.join(process.cwd(), "storage", "evidence");
+/**
+ * Evidence storage (Section 17.3, NFR-07, NFR-13).
+ * File bytes are kept in the database next to their SHA-256 fingerprint, so the app runs unchanged
+ * on hosts with ephemeral disks (Vercel). Downloads always go through the access guard in
+ * app/api/evidence/[id]. Swap `data` for an object-store key (e.g. Vercel Blob) if files grow large.
+ */
 
 export type StoredFile = {
   fileName: string;
@@ -11,6 +15,7 @@ export type StoredFile = {
   mimeType: string;
   size: number;
   sha256: string;
+  data: Uint8Array<ArrayBuffer>;
 };
 
 export function validateEvidence(file: File): string | null {
@@ -23,28 +28,14 @@ export function validateEvidence(file: File): string | null {
   return null;
 }
 
-/** Store evidence outside the database with a content fingerprint (NFR-13, Section 17.3). */
 export async function storeEvidence(file: File): Promise<StoredFile> {
-  await mkdir(ROOT, { recursive: true });
   const buf = Buffer.from(await file.arrayBuffer());
-  const sha256 = createHash("sha256").update(buf).digest("hex");
-  const ext = path.extname(file.name).slice(0, 10);
-  const storedName = `${randomUUID()}${ext}`;
-  await writeFile(path.join(ROOT, storedName), buf);
-  return { fileName: file.name, storedName, mimeType: file.type || "application/octet-stream", size: buf.length, sha256 };
+  return storeBuffer(file.name, file.type || "application/octet-stream", buf);
 }
 
-export async function readEvidence(storedName: string): Promise<Buffer> {
-  const safe = path.basename(storedName);
-  return readFile(path.join(ROOT, safe));
-}
-
-/** Seed helper: write a generated file with a real hash. */
+/** Also used by the seed: fingerprint and package a buffer for the EvidenceFile row. */
 export async function storeBuffer(fileName: string, mimeType: string, buf: Buffer): Promise<StoredFile> {
-  await mkdir(ROOT, { recursive: true });
   const sha256 = createHash("sha256").update(buf).digest("hex");
-  const ext = path.extname(fileName);
-  const storedName = `${randomUUID()}${ext}`;
-  await writeFile(path.join(ROOT, storedName), buf);
-  return { fileName, storedName, mimeType, size: buf.length, sha256 };
+  const ext = path.extname(fileName).slice(0, 10);
+  return { fileName, storedName: `${randomUUID()}${ext}`, mimeType, size: buf.length, sha256, data: Uint8Array.from(buf) };
 }

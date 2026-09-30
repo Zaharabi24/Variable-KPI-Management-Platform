@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model BusinessUnit {
@@ -110,6 +111,7 @@ model EvidenceFile {
   mimeType     String
   size         Int
   sha256       String
+  data         Bytes // file content lives in the database so deployments with ephemeral disks (Vercel) keep evidence
   uploadedById String
   uploadedBy   User     @relation(fields: [uploadedById], references: [id])
   createdAt    DateTime @default(now())
@@ -121,8 +123,8 @@ model KpiVersion {
   kpi         Kpi      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
   versionNo   Int
   action      String // SUBMIT | RESUBMIT | APPROVE | ADJUST | RETURN | REJECT | EDIT | DELETE
-  snapshot    String // JSON of the KPI record after the action
-  changes     String // JSON array of { field, oldValue, newValue }
+  snapshot    String @db.Text // JSON of the KPI record after the action
+  changes     String @db.Text // JSON array of { field, oldValue, newValue }
   reason      String?
   changedById String
   changedBy   User     @relation(fields: [changedById], references: [id])
@@ -157,7 +159,7 @@ model EmailLog {
   id        String   @id @default(cuid())
   toEmail   String
   subject   String
-  body      String
+  body      String   @db.Text
   link      String?
   createdAt DateTime @default(now())
 }

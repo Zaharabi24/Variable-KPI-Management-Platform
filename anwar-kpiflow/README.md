@@ -8,8 +8,9 @@ Variable KPI & Performance Management System for Anwar Group of Industries, buil
 
 ```bash
 cd anwar-kpiflow
+cp .env.example .env # set DATABASE_URL / DATABASE_URL_UNPOOLED to a Postgres database
 npm install          # also generates the Prisma client
-npm run setup        # creates the SQLite database and seeds demo data
+npm run setup        # creates the schema and seeds demo data
 npm run dev          # http://localhost:3000
 ```
 
@@ -62,8 +63,8 @@ Other scripts:
 
 ## Stack
 
-Next.js 15 (App Router, Server Actions) · TypeScript · Tailwind CSS · Prisma + SQLite · jose sessions · bcrypt · Recharts · lucide-react.
-The BRD leaves the stack open (OI-09); this choice keeps the prototype runnable from one folder with no external services, while the schema (`prisma/schema.prisma`) is relational and moves to PostgreSQL by changing the datasource.
+Next.js 15 (App Router, Server Actions) · TypeScript · Tailwind CSS · Prisma + PostgreSQL (Neon) · jose sessions · bcrypt · Recharts · lucide-react.
+The BRD leaves the stack open (OI-09). Evidence files are stored in the database with their SHA-256 hash so the app runs on hosts with ephemeral disks such as Vercel.
 
 ## Project layout
 
@@ -73,11 +74,20 @@ src/
   app/         routes: (auth) login/register/setup-password, (app) role screens, api/ downloads, dev/outbox
   components/  ui kit (button, field, card, badge, tracker, modal, table, toast), shell (sidebar/topbar), kpi widgets
   lib/         db, auth guard, session, calc (Section 11), reporting, storage (evidence + hash), audit, email, versions
-prisma/        schema + seed (10 business units, 5 departments, 16 users, 46 KPIs across 2025–2026)
+prisma/        schema (PostgreSQL) + seed (10 business units, 5 departments, 16 users, 46 KPIs across 2025–2026)
 scripts/       e2e-smoke.mjs, activate-employees.mjs
-storage/       uploaded evidence files (hashed, served only through the access guard)
 ```
 
 ## Open items honoured as working positions
 
 OI-01 two Variable KPI categories · OI-02 category and period captured · OI-03 no cap (inverse KPIs flagged by approvers via Adjustment) · OI-04 heads approved by Super Admin · OI-05 calendar quarters · OI-06 Adjustment approves · OI-07 weights not forced to 100% · OI-10 numeric targets only · OI-11 bands 90/70 · OI-12 both Super Admin and heads decide · OI-13 self-registration plus Super Admin add/move · OI-14 in-app status only · OI-15 forgot-password reuses the setup link; evidence PDF/image/Excel/Word/CSV/text up to 10 MB.
+
+## Deployment (Vercel)
+
+The project is linked to Vercel project `variable-kpi-management-platform` with a Neon Postgres database from the Vercel Marketplace. `vercel-build` runs `prisma generate && prisma db push && next build`, so the schema is applied on every deploy. Seed the hosted database once from your machine with the Vercel env pulled locally:
+
+```bash
+vercel env pull .env.local --yes
+npx dotenv -e .env.local -- npx tsx prisma/seed.ts   # or copy DATABASE_URL* into .env and run npm run db:seed
+vercel --prod
+```
