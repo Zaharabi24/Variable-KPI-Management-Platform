@@ -113,7 +113,7 @@ try {
     await page.fill("#remarks", `Automated smoke test submission (${RUN}).`);
     check("Achievement auto-calculated 122.00% (AC-10)", (await page.inputValue("#achievement")) === "122.00%", await page.inputValue("#achievement"));
     check("Score auto-calculated 122 (AC-10)", (await page.inputValue("#score")) === "122", await page.inputValue("#score"));
-    const approverOptions = await page.locator("#approverId option:not([value=""])").allTextContents();
+    const approverOptions = await page.locator("#approverId option:not([value=''])").allTextContents();
     check("Approval Person list = own department heads only (AC-11)", approverOptions.length === 2 && approverOptions.every((o) => /Nasrin|Kamal/.test(o)), approverOptions.join(" | "));
     await page.selectOption("#approverId", { index: 1 });
     check("Submit still disabled without evidence (AC-09)", await submitBtn.isDisabled());
@@ -232,7 +232,7 @@ try {
     await dh.goto(`${BASE}/my-kpi`);
     await dh.click('button[aria-label="Create KPI"]');
     await dh.waitForSelector("#approverId", { timeout: T });
-    const dhApprovers = await dh.locator("#approverId option:not([value=""])").allTextContents();
+    const dhApprovers = await dh.locator("#approverId option:not([value=''])").allTextContents();
     check("Department Head's Approval Person = Super Admin (OI-04)", dhApprovers.length === 1 && /Sarwar/.test(dhApprovers[0]), dhApprovers.join("|"));
     await ctx.close();
   }
@@ -346,7 +346,8 @@ try {
     const ctx = await browser.newContext(vp);
     const sa = await login(ctx, "superadmin@anwargroup.net", PW.admin);
     check("Super Admin lands on Dashboard (AC-05)", sa.url().endsWith("/dashboard"));
-    await sa.goto(`${BASE}/admin/kpis`);
+    await sa.goto(`${BASE}/admin/kpis?all=1`);
+    await sa.waitForSelector("text=By department", { timeout: T });
     const all = await sa.locator("main").innerText();
     check("Super Admin sees KPIs of every department incl. Department Heads (AC-25)", /Tania Karim/.test(all) && /Rafi Ahmed/.test(all) && /Dept Head/.test(all));
     await sa.goto(`${BASE}/admin/versions?kpi=${approveId}`);
