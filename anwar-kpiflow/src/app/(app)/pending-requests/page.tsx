@@ -43,7 +43,7 @@ export default async function PendingRequestsPage({ searchParams }: { searchPara
     achievement: k.achievement, calculatedScore: k.calculatedScore, finalScore: k.finalScore, remarks: k.remarks, dataSource: k.dataSource,
     periodYear: k.periodYear, periodMonth: k.periodMonth, submittedAt: k.submittedAt.toISOString(), currentVersion: k.currentVersion,
     owner: { id: k.owner.id, fullName: k.owner.fullName, employeeId: k.owner.employeeId, designation: k.owner.designation, department: k.owner.department?.name ?? null, departmentId: k.owner.departmentId },
-    approver: { fullName: k.approver.fullName },
+    approver: { fullName: k.approver?.fullName ?? "—" },
     evidence: k.evidence.map((e) => ({ id: e.id, fileName: e.fileName, sha256: e.sha256, size: e.size })),
     versions: k.versions.map((v) => ({ id: v.id, versionNo: v.versionNo, action: v.action, changes: v.changes, reason: v.reason, createdAt: v.createdAt.toISOString(), changedBy: { fullName: v.changedBy.fullName } })),
     isResubmission: k.versions.some((v) => v.action === "RESUBMIT"),

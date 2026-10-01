@@ -8,9 +8,12 @@ const COOKIE = "kpiflow_session";
 const EMPLOYEE_ONLY_BLOCK = ["/dashboard", "/pending-requests", "/leaderboard", "/admin"];
 const HEAD_BLOCK = ["/admin"];
 const SUPER_ADMIN_BLOCK = ["/my-kpi", "/performance"];
+const SYSTEM_ADMIN_ALLOW = ["/admin/department-heads", "/admin/employees", "/admin/kpis", "/my-kpi/", "/profile", "/api", "/dev"];
 
 function homeFor(role: string) {
-  return role === "EMPLOYEE" ? "/my-kpi" : "/dashboard";
+  if (role === "EMPLOYEE") return "/my-kpi";
+  if (role === "SYSTEM_ADMIN") return "/admin/employees";
+  return "/dashboard";
 }
 
 /** Edge access guard: every app screen requires an authenticated session (6.4, NFR-04). */
@@ -40,7 +43,8 @@ export async function middleware(req: NextRequest) {
   const blocked =
     (role === "EMPLOYEE" && EMPLOYEE_ONLY_BLOCK.some((p) => pathname.startsWith(p))) ||
     (role === "DEPARTMENT_HEAD" && HEAD_BLOCK.some((p) => pathname.startsWith(p))) ||
-    (role === "SUPER_ADMIN" && SUPER_ADMIN_BLOCK.some((p) => pathname === p));
+    (role === "SUPER_ADMIN" && SUPER_ADMIN_BLOCK.some((p) => pathname === p)) ||
+    (role === "SYSTEM_ADMIN" && pathname !== "/" && !SYSTEM_ADMIN_ALLOW.some((p) => pathname.startsWith(p)));
   if (blocked && !pathname.startsWith("/api")) {
     const url = req.nextUrl.clone();
     url.pathname = homeFor(role);
@@ -51,5 +55,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|api/health).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|brand/|api/health).*)"],
 };

@@ -45,7 +45,7 @@ table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:8px 10px
     ["Actual", `<span class="mono">${esc(fmtNum(k.actual))} ${esc(k.unit)}</span>`],
     ["KPI Weight", `<span class="mono">${esc(fmtNum(k.weight))}%</span>`],
     ["Remarks", esc(k.remarks)],
-    ["Approval Person", esc(k.approver.fullName)],
+    ["Approval Person", esc(k.approver?.fullName ?? "—")],
     ["Submitted", esc(when(k.submittedAt))],
     ["Decided", k.decidedAt ? esc(when(k.decidedAt)) : "—"],
     ["Decision reason", esc(k.decisionReason ?? "—")],

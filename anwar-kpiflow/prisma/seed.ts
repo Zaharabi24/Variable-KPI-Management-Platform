@@ -57,6 +57,7 @@ async function main() {
 
   const U: Record<string, Awaited<ReturnType<typeof mk>>> = {};
   U.admin = await mk("Sarwar Hossain", "superadmin@anwargroup.net", "AG-0001", "SUPER_ADMIN", "ATECH", null, "Group Head of Performance", adminHash);
+  U.sysadmin = await mk("Tanjila Hoque", "sysadmin@anwargroup.net", "AG-0002", "SYSTEM_ADMIN", "ATECH", null, "System Administrator", adminHash);
   U.nasrin = await mk("Nasrin Islam", "nasrin.islam@anwargroup.net", "AG-0101", "DEPARTMENT_HEAD", "ATECH", "GA", "Head of Growth Analytics", headHash);
   U.kamal = await mk("Kamal Hasan", "kamal.hasan@anwargroup.net", "AG-0102", "DEPARTMENT_HEAD", "ATECH", "GA", "Deputy Head, Growth Analytics", headHash);
   U.farhana = await mk("Farhana Rahman", "farhana.rahman@anwargroup.net", "AG-0201", "DEPARTMENT_HEAD", "ACL", "HR", "Head of Human Resources", headHash);
@@ -219,6 +220,7 @@ async function main() {
   console.log(`Seeded ${Object.keys(units).length} business units, ${Object.keys(depts).length} departments, ${Object.keys(U).length + 2} users, ${created} KPIs.`);
   console.log("\nDemo credentials:");
   console.log(`  Super Admin       superadmin@anwargroup.net      ${DEMO_PASSWORDS.SUPER_ADMIN}`);
+  console.log(`  System Admin      sysadmin@anwargroup.net        ${DEMO_PASSWORDS.SUPER_ADMIN}`);
   console.log(`  Department Head   nasrin.islam@anwargroup.net    ${DEMO_PASSWORDS.DEPARTMENT_HEAD}  (Growth Analytics)`);
   console.log(`  Department Head   kamal.hasan@anwargroup.net     ${DEMO_PASSWORDS.DEPARTMENT_HEAD}  (Growth Analytics, 2nd head)`);
   console.log(`  Department Head   farhana.rahman@anwargroup.net  ${DEMO_PASSWORDS.DEPARTMENT_HEAD}  (Human Resources)`);

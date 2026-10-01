@@ -7,33 +7,34 @@ export const maxDuration = 60;
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
-      <aside className="hidden lg:flex flex-col justify-between bg-brand-950 text-white p-12 relative overflow-hidden">
-        <div className="absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-brand-500/20 blur-3xl" aria-hidden />
-        <div className="absolute -bottom-40 -left-24 h-[380px] w-[380px] rounded-full bg-brand-300/10 blur-3xl" aria-hidden />
-        <Logo variant="dark" size="lg" />
+      <aside className="hidden lg:flex flex-col justify-between bg-brand-500 text-white p-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800" aria-hidden />
+        <div className="absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-white/10 blur-3xl" aria-hidden />
+        <div className="absolute -bottom-40 -left-24 h-[380px] w-[380px] rounded-full bg-black/10 blur-3xl" aria-hidden />
+        <div className="relative"><Logo variant="dark" size="lg" /></div>
         <div className="relative max-w-md">
-          <p className="text-[12px] uppercase tracking-[0.16em] text-brand-200/80 mb-4">Variable KPI · Phase 01</p>
+          <p className="text-[12px] uppercase tracking-[0.16em] text-white/75 mb-4">Variable KPI · Phase 01</p>
           <h2 className="text-[34px] leading-[1.15] font-semibold tracking-tight">
             Every score traceable from target to approval.
           </h2>
-          <p className="mt-4 text-[15px] text-white/65 leading-7">
+          <p className="mt-4 text-[15px] text-white/80 leading-7">
             One guided flow for Employees, Department Heads and Upper Management across all Anwar Group business units.
             Target → Actual → Evidence → Score → Review → Approval.
           </p>
           <ol className="mt-8 grid grid-cols-3 gap-2 text-[12px]">
             {["Target", "Actual", "Evidence", "Score", "Review", "Approval"].map((s, i) => (
-              <li key={s} className="flex items-center gap-2 rounded-lg bg-white/6 border border-white/10 px-3 py-2">
-                <span className="h-5 w-5 rounded-full bg-brand-400/30 text-brand-100 flex items-center justify-center text-[11px] font-semibold">{i + 1}</span>
+              <li key={s} className="flex items-center gap-2 rounded-lg bg-white/10 border border-white/20 px-3 py-2">
+                <span className="h-5 w-5 rounded-full bg-white text-brand-600 flex items-center justify-center text-[11px] font-bold">{i + 1}</span>
                 {s}
               </li>
             ))}
           </ol>
         </div>
-        <p className="relative text-[12px] text-white/40">© {new Date().getFullYear()} Anwar Group of Industries · Anwar KPIFlow prototype</p>
+        <p className="relative text-[12px] text-white/60">© {new Date().getFullYear()} Anwar Group of Industries · Anwar KPIFlow prototype</p>
       </aside>
-      <main className="flex flex-col">
-        <div className="lg:hidden p-6">
-          <Link href="/login"><Logo /></Link>
+      <main className="flex flex-col bg-white">
+        <div className="lg:hidden px-6 pt-6">
+          <Link href="/login" className="inline-block"><Logo /></Link>
         </div>
         <div className="flex-1 flex items-center justify-center px-6 py-10">
           <div className="w-full max-w-[440px] animate-fade-up">{children}</div>

@@ -30,7 +30,7 @@ export type KpiDetailData = {
   submittedAt: Date;
   currentVersion: number;
   owner: { fullName: string; employeeId: string; designation: string | null; department: { name: string } | null };
-  approver: { fullName: string };
+  approver: { fullName: string } | null;
   evidence: { id: string; fileName: string; sha256: string; size: number; createdAt: Date }[];
   versions: { id: string; versionNo: number; action: string; changes: string; reason: string | null; createdAt: Date; changedBy: { fullName: string } }[];
 };
@@ -67,7 +67,7 @@ export function KpiDetailBody({ kpi, canDownload = true }: { kpi: KpiDetailData;
 
       {kpi.status === "RETURNED" && kpi.returnRemarks && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13.5px] text-red-900">
-          <span className="font-semibold">Returned by {kpi.approver.fullName}:</span> {kpi.returnRemarks}
+          <span className="font-semibold">Returned by {kpi.approver?.fullName ?? "your approver"}:</span> {kpi.returnRemarks}
         </div>
       )}
       {kpi.status === "REJECTED" && kpi.decisionReason && (
@@ -85,7 +85,7 @@ export function KpiDetailBody({ kpi, canDownload = true }: { kpi: KpiDetailData;
                 <Item label="Target" mono>{fmtNum(kpi.target)} {kpi.unit && <span className="text-ink-400 text-[13px]">{kpi.unit}</span>}</Item>
                 <Item label="Latest actual" mono>{fmtNum(kpi.actual)} {kpi.unit && <span className="text-ink-400 text-[13px]">{kpi.unit}</span>}</Item>
                 <Item label="Data source" mono>{kpi.dataSource}</Item>
-                <Item label="Reviewer / approver">{kpi.approver.fullName}</Item>
+                <Item label="Reviewer / approver">{kpi.approver?.fullName ?? "Not selected yet"}</Item>
               </dl>
             </CardBody>
           </Card>

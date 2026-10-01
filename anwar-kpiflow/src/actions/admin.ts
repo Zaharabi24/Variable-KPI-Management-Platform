@@ -24,7 +24,7 @@ const inviteSchema = z.object({
 });
 
 export async function inviteDepartmentHeadAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const admin = await requireRole(ROLES.SUPER_ADMIN);
+  const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const parsed = inviteSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(formData, flatten(parsed.error));
   const d = parsed.data;
@@ -45,7 +45,7 @@ export async function inviteDepartmentHeadAction(_prev: ActionState, formData: F
 
 /* FR-SA-08 — Resend invitation */
 export async function resendInvitationAction(userId: string) {
-  const admin = await requireRole(ROLES.SUPER_ADMIN);
+  const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user || user.status !== USER_STATUS.PENDING_SETUP) return;
   await issueSetupLink(user.id, user.email, user.fullName, user.role === ROLES.DEPARTMENT_HEAD ? "INVITATION" : "SIGNUP", admin.id);
@@ -58,7 +58,7 @@ export async function resendInvitationAction(userId: string) {
 const addEmployeeSchema = inviteSchema.omit({ role: true }).extend({ designation: z.string().trim().max(80).optional() });
 
 export async function addEmployeeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const admin = await requireRole(ROLES.SUPER_ADMIN);
+  const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const parsed = addEmployeeSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(formData, flatten(parsed.error));
   const d = parsed.data;
@@ -78,7 +78,7 @@ export async function addEmployeeAction(_prev: ActionState, formData: FormData):
 
 /* FR-SA-06 — Move employee to another department / business unit */
 export async function moveUserAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const admin = await requireRole(ROLES.SUPER_ADMIN);
+  const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const userId = String(formData.get("userId"));
   const departmentId = String(formData.get("departmentId") ?? "");
   const businessUnitId = String(formData.get("businessUnitId") ?? "");
@@ -94,9 +94,9 @@ export async function moveUserAction(_prev: ActionState, formData: FormData): Pr
 
 /* FR-SA-06 — Deactivate / reactivate */
 export async function setUserStatusAction(userId: string, status: "ACTIVE" | "DEACTIVATED") {
-  const admin = await requireRole(ROLES.SUPER_ADMIN);
+  const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const user = await db.user.findUnique({ where: { id: userId } });
-  if (!user || user.id === admin.id || user.role === ROLES.SUPER_ADMIN) return;
+  if (!user || user.id === admin.id || user.role === ROLES.SUPER_ADMIN || user.role === ROLES.SYSTEM_ADMIN) return;
   if (status === "ACTIVE" && !user.passwordHash) return; // still pending setup
   await db.user.update({ where: { id: userId }, data: { status } });
   await audit(admin.id, status === "ACTIVE" ? "USER_REACTIVATED" : "USER_DEACTIVATED", "User", userId);
@@ -106,9 +106,9 @@ export async function setUserStatusAction(userId: string, status: "ACTIVE" | "DE
 
 /* FR-SA-01 — Delete user (historical KPI records remain for audit, 6.4) */
 export async function deleteUserAction(userId: string) {
-  const admin = await requireRole(ROLES.SUPER_ADMIN);
+  const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const user = await db.user.findUnique({ where: { id: userId }, include: { _count: { select: { ownedKpis: true, approvingKpis: true } } } });
-  if (!user || user.id === admin.id || user.role === ROLES.SUPER_ADMIN) return;
+  if (!user || user.id === admin.id || user.role === ROLES.SUPER_ADMIN || user.role === ROLES.SYSTEM_ADMIN) return;
   if (user._count.ownedKpis > 0 || user._count.approvingKpis > 0) {
     // Keep history: deactivate instead of hard delete
     await db.user.update({ where: { id: userId }, data: { status: USER_STATUS.DEACTIVATED } });
@@ -178,7 +178,7 @@ const editUserSchema = z.object({
   corporatePhone: z.string().trim().max(30).optional(),
 });
 export async function editUserAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const admin = await requireRole(ROLES.SUPER_ADMIN);
+  const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const parsed = editUserSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(formData, flatten(parsed.error));
   const d = parsed.data;

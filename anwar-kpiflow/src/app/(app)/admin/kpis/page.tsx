@@ -15,7 +15,7 @@ import type { Prisma } from "@prisma/client";
 export const metadata: Metadata = { title: "All KPIs and Approvals" };
 
 export default async function AllKpisPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireRole(ROLES.SUPER_ADMIN);
+  const user = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const sp = await searchParams;
   const allPeriods = sp.all === "1";
 
@@ -52,7 +52,7 @@ export default async function AllKpisPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <PageHeader
-        title="All KPIs and Approvals"
+        title={user.role === ROLES.SYSTEM_ADMIN ? "All KPIs" : "All KPIs and Approvals"}
         subtitle={`${deptName} · ${allPeriods ? "all periods" : period.label} · every employee's and Department Head's KPIs, department-wise`}
         action={<PeriodFilter period={period} />}
       />
@@ -76,7 +76,7 @@ export default async function AllKpisPage({ searchParams }: { searchParams: Prom
             {kpis.map((k) => (
               <tr key={k.id} className={`hover:bg-surface/70 ${k.deletedAt ? "opacity-60" : ""}`}>
                 <Td className="min-w-[180px]">
-                  <Link href={k.status === "SUBMITTED" && !k.deletedAt ? `/pending-requests?open=${k.id}&all=1` : `/my-kpi/${k.id}`} className="font-medium text-ink-900 hover:text-brand-700">{k.name}</Link>
+                  <Link href={k.status === "SUBMITTED" && !k.deletedAt && user.role === ROLES.SUPER_ADMIN ? `/pending-requests?open=${k.id}&all=1` : `/my-kpi/${k.id}`} className="font-medium text-ink-900 hover:text-brand-700">{k.name}</Link>
                   {k.deletedAt && <div className="text-[11px] text-red-600">deleted</div>}
                 </Td>
                 <Td><div className="whitespace-nowrap">{k.owner.fullName}</div><div className="text-[11.5px] text-ink-400 font-mono">{k.owner.employeeId}{k.owner.role === ROLES.DEPARTMENT_HEAD ? " · Dept Head" : ""}</div></Td>
@@ -88,7 +88,7 @@ export default async function AllKpisPage({ searchParams }: { searchParams: Prom
                 <Td align="right" mono>{fmtNum(k.weight)}%</Td>
                 <Td align="right" mono>{k.finalScore === null ? <span className="text-ink-300">—</span> : fmtNum(k.finalScore)}</Td>
                 <Td><StatusBadge status={k.status} /></Td>
-                <Td className="whitespace-nowrap">{k.approver.fullName}</Td>
+                <Td className="whitespace-nowrap">{k.approver?.fullName ?? "—"}</Td>
                 <Td align="right" mono><Link href={`/admin/versions?kpi=${k.id}`} className="text-brand-700 hover:underline">v{k.currentVersion}</Link></Td>
               </tr>
             ))}

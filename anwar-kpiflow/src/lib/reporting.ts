@@ -31,7 +31,7 @@ export function periodToQuery(p: PeriodRange): Record<string, string> {
 export async function performanceSummary(userId: string, p: PeriodRange) {
   const prev = previousPeriod(p);
   const all = await db.kpi.findMany({
-    where: { ownerId: userId, deletedAt: null, periodYear: { in: [p.year, prev.year] } },
+    where: { ownerId: userId, deletedAt: null, status: { not: "DRAFT" }, periodYear: { in: [p.year, prev.year] } },
     include: { approver: true, evidence: { omit: { data: true } } },
     orderBy: [{ periodMonth: "asc" }, { submittedAt: "asc" }],
   });
@@ -61,7 +61,7 @@ export async function performanceSummary(userId: string, p: PeriodRange) {
 /** Bar-chart series: monthly (12 months of the year), quarterly (4), yearly (last 3 years). */
 export async function chartSeries(userId: string, year: number) {
   const kpis = await db.kpi.findMany({
-    where: { ownerId: userId, deletedAt: null, periodYear: { gte: year - 2, lte: year } },
+    where: { ownerId: userId, deletedAt: null, status: { not: "DRAFT" }, periodYear: { gte: year - 2, lte: year } },
   });
   const monthly = Array.from({ length: 12 }, (_, i) => {
     const items = kpis.filter((k) => k.periodYear === year && k.periodMonth === i + 1);
@@ -90,7 +90,7 @@ export async function departmentDashboard(departmentId: string | null, p: Period
   });
   const ids = employees.map((e) => e.id);
   const kpis = await db.kpi.findMany({
-    where: { ownerId: { in: ids }, deletedAt: null, periodYear: p.year, periodMonth: { gte: p.fromMonth, lte: p.toMonth } },
+    where: { ownerId: { in: ids }, deletedAt: null, status: { not: "DRAFT" }, periodYear: p.year, periodMonth: { gte: p.fromMonth, lte: p.toMonth } },
     include: { owner: { include: { department: true } } },
     orderBy: { submittedAt: "asc" },
   });
@@ -129,7 +129,7 @@ export async function departmentLeaderboard(departmentId: string, p: PeriodRange
     where: { departmentId, role: ROLES.EMPLOYEE, status: { not: "DEACTIVATED" } },
   });
   const kpis = await db.kpi.findMany({
-    where: { ownerId: { in: employees.map((e) => e.id) }, deletedAt: null, periodYear: p.year, periodMonth: { gte: p.fromMonth, lte: p.toMonth } },
+    where: { ownerId: { in: employees.map((e) => e.id) }, deletedAt: null, status: { not: "DRAFT" }, periodYear: p.year, periodMonth: { gte: p.fromMonth, lte: p.toMonth } },
   });
   const rows = employees
     .map((e) => {

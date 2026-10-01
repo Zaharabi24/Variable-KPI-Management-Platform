@@ -7,6 +7,8 @@ import { fmtNum, timeRemainingLabel } from "@/lib/calc";
 
 export type KpiCardData = {
   id: string;
+  /** Draft progress (which fields are filled); only for status DRAFT */
+  draftProgress?: { target: boolean; actual: boolean; evidence: boolean };
   name: string;
   status: string;
   category: string;
@@ -21,7 +23,9 @@ export type KpiCardData = {
 };
 
 /** FR-KPI-08 / Section 15.3 — KPI card following the reference layout. */
-export function KpiCard({ kpi, href }: { kpi: KpiCardData; href?: string }) {
+export function KpiCard({ kpi, href, action }: { kpi: KpiCardData; href?: string; action?: React.ReactNode }) {
+  const isDraft = kpi.status === "DRAFT";
+  const noActual = isDraft && !kpi.draftProgress?.actual;
   const score = kpi.finalScore ?? kpi.calculatedScore;
   return (
     <article className="card p-5 flex flex-col h-full min-w-0">
@@ -35,23 +39,25 @@ export function KpiCard({ kpi, href }: { kpi: KpiCardData; href?: string }) {
 
       <dl className="grid grid-cols-3 gap-3 mt-4">
         <Metric label="Target" value={fmtNum(kpi.target)} unit={kpi.unit} />
-        <Metric label="Actual" value={fmtNum(kpi.actual)} unit={kpi.unit} />
-        <Metric label="Score" value={fmtNum(score)} />
+        <Metric label="Actual" value={noActual ? "—" : fmtNum(kpi.actual)} unit={noActual ? "" : kpi.unit} />
+        <Metric label="Score" value={noActual ? "—" : fmtNum(score)} />
       </dl>
 
-      <Tracker status={kpi.status} className="mt-5" />
+      <Tracker status={kpi.status} draft={kpi.draftProgress} className="mt-5" />
 
       <p className="mt-4 flex items-center gap-1.5 text-[12.5px] text-ink-500">
         <Clock className="h-3.5 w-3.5" /> {timeRemainingLabel(kpi.periodYear, kpi.periodMonth)}
       </p>
 
       <div className="mt-auto pt-4">
-        <Link
-          href={href ?? `/my-kpi/${kpi.id}`}
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-brand-700 text-white text-[13px] font-medium hover:bg-brand-800 transition-colors"
-        >
-          View Details <ChevronRight className="h-4 w-4" />
-        </Link>
+        {action ?? (
+          <Link
+            href={href ?? `/my-kpi/${kpi.id}`}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-brand-500 text-white text-[13px] font-medium hover:bg-brand-600 transition-colors"
+          >
+            View Details <ChevronRight className="h-4 w-4" />
+          </Link>
+        )}
       </div>
     </article>
   );

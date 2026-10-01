@@ -10,7 +10,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await requireUser();
 
   let pendingCount = 0;
-  if (isSuperAdmin(user)) {
+  if (user.role === ROLES.SYSTEM_ADMIN) {
+    pendingCount = 0;
+  } else if (isSuperAdmin(user)) {
     pendingCount = await db.kpi.count({ where: { status: "SUBMITTED", deletedAt: null } });
   } else if (isDeptHead(user)) {
     pendingCount = await db.kpi.count({

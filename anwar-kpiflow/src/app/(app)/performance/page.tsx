@@ -88,7 +88,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
                     </Td>
                     <Td><span className="block max-w-[220px] truncate text-ink-600" title={k.remarks}>{k.remarks}</span></Td>
                     <Td><StatusBadge status={k.status} /></Td>
-                    <Td>{k.approver.fullName}</Td>
+                    <Td>{k.approver?.fullName ?? "—"}</Td>
                   </tr>
                 ))}
               </tbody>
@@ -99,7 +99,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
 
       {/* FR-PS-05 — three bar charts, distinct colours */}
       <div className="grid lg:grid-cols-3 gap-5">
-        <KpiBarChart title="Monthly KPI" subtitle={`Total KPI Score by month · ${period.year}`} data={series.monthly} color="#1f6448" highlight={period.type === "MONTHLY" ? highlight : undefined} />
+        <KpiBarChart title="Monthly KPI" subtitle={`Total KPI Score by month · ${period.year}`} data={series.monthly} color="#DE3332" highlight={period.type === "MONTHLY" ? highlight : undefined} />
         <KpiBarChart title="Quarterly KPI" subtitle={`Total KPI Score by quarter · ${period.year}`} data={series.quarterly} color="#2563eb" highlight={period.type === "QUARTERLY" ? highlight : period.type === "MONTHLY" ? `Q${quarterOf(period.index)}` : undefined} />
         <KpiBarChart title="Yearly KPI" subtitle="Total KPI Score by year" data={series.yearly} color="#b45309" highlight={String(period.year)} />
       </div>

@@ -9,7 +9,7 @@ import { UserTable } from "../employees/user-table";
 export const metadata: Metadata = { title: "Department Head" };
 
 export default async function DepartmentHeadsPage() {
-  await requireRole(ROLES.SUPER_ADMIN);
+  await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const [heads, units, departments] = await Promise.all([
     db.user.findMany({
       where: { role: ROLES.DEPARTMENT_HEAD },

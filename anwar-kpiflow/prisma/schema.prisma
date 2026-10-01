@@ -80,13 +80,13 @@ model Kpi {
   achievement     Float
   calculatedScore Float
   finalScore      Float?
-  status          String // SUBMITTED | RETURNED | APPROVED | ADJUSTED | REJECTED
+  status          String // DRAFT | SUBMITTED | RETURNED | APPROVED | ADJUSTED | REJECTED
   remarks         String
   dataSource      String    @default("verified_manual")
   ownerId         String
   owner           User      @relation("KpiOwner", fields: [ownerId], references: [id])
-  approverId      String
-  approver        User      @relation("KpiApprover", fields: [approverId], references: [id])
+  approverId      String?
+  approver        User?     @relation("KpiApprover", fields: [approverId], references: [id])
   currentVersion  Int       @default(1)
   returnRemarks   String?
   decisionReason  String?
@@ -122,7 +122,7 @@ model KpiVersion {
   kpiId       String
   kpi         Kpi      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
   versionNo   Int
-  action      String // SUBMIT | RESUBMIT | APPROVE | ADJUST | RETURN | REJECT | EDIT | DELETE
+  action      String // DRAFT | SUBMIT | RESUBMIT | APPROVE | ADJUST | RETURN | REJECT | EDIT | DELETE | TARGET_CHANGE
   snapshot    String @db.Text // JSON of the KPI record after the action
   changes     String @db.Text // JSON array of { field, oldValue, newValue }
   reason      String?

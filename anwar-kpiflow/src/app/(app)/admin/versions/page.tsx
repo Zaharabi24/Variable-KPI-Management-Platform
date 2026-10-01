@@ -55,7 +55,7 @@ export default async function VersionsPage({ searchParams }: { searchParams: Pro
           <Card>
             <CardHeader
               title={<span className="flex items-center gap-2">{kpi.name} <StatusBadge status={kpi.status} /></span>}
-              subtitle={`${kpi.owner.fullName} · approver ${kpi.approver.fullName} · ${kpi.versions.length} version${kpi.versions.length === 1 ? "" : "s"} · last change ${fmtDateTime(kpi.updatedAt)}`}
+              subtitle={`${kpi.owner.fullName} · approver ${kpi.approver?.fullName ?? "—"} · ${kpi.versions.length} version${kpi.versions.length === 1 ? "" : "s"} · last change ${fmtDateTime(kpi.updatedAt)}`}
               action={<Link href={`/my-kpi/${kpi.id}`} className="text-[13px] font-medium text-brand-700 hover:underline">Open record →</Link>}
             />
             <CardBody>

@@ -3,9 +3,10 @@ import { STATUS_LABELS, type KpiStatus } from "@/lib/constants";
 
 /** Section 15.11 — badges always carry the word, never colour alone. */
 const styles: Record<KpiStatus, string> = {
+  DRAFT: "border border-ink-300 text-ink-700 bg-ink-100/70",
   SUBMITTED: "border border-amber-400 text-amber-800 bg-amber-50",
-  APPROVED: "bg-brand-700 text-white border border-brand-700",
-  ADJUSTED: "border border-brand-600 text-brand-800 bg-brand-50",
+  APPROVED: "bg-emerald-700 text-white border border-emerald-700",
+  ADJUSTED: "border border-emerald-600 text-emerald-800 bg-emerald-50",
   RETURNED: "border border-red-400 text-red-700 bg-red-50",
   REJECTED: "bg-red-600 text-white border border-red-600",
 };
@@ -26,7 +27,7 @@ export function Pill({ children, tone = "neutral", className }: { children: Reac
     amber: "bg-amber-50 text-amber-800 border border-amber-200",
     red: "bg-red-50 text-red-700 border border-red-200",
     blue: "bg-sky-50 text-sky-800 border border-sky-200",
-    brand: "bg-brand-50 text-brand-800 border border-brand-100",
+    brand: "bg-brand-50 text-brand-700 border border-brand-100",
   }[tone];
   return <span className={cn("inline-flex items-center h-6 px-2.5 rounded-full text-[11.5px] font-medium whitespace-nowrap", t, className)}>{children}</span>;
 }

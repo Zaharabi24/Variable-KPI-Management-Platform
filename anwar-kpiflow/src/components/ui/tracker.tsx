@@ -5,7 +5,11 @@ import { TRACKER_STEPS } from "@/lib/constants";
 type StepState = "done" | "current" | "todo" | "returned" | "rejected";
 
 /** Section 10.2 — status drives the six-step tracker. */
-export function trackerStates(status: string): StepState[] {
+export function trackerStates(status: string, draft?: { target: boolean; actual: boolean; evidence: boolean }): StepState[] {
+  if (status === "DRAFT") {
+    const d = draft ?? { target: true, actual: false, evidence: false };
+    return [d.target ? "done" : "todo", d.actual ? "done" : "todo", d.evidence ? "done" : "todo", d.actual ? "done" : "todo", "todo", "todo"];
+  }
   const base: StepState[] = ["done", "done", "done", "done", "todo", "todo"];
   switch (status) {
     case "SUBMITTED":
@@ -26,8 +30,8 @@ export function trackerStates(status: string): StepState[] {
   return base;
 }
 
-export function Tracker({ status, layout = "grid", className }: { status: string; layout?: "grid" | "row"; className?: string }) {
-  const states = trackerStates(status);
+export function Tracker({ status, layout = "grid", className, draft }: { status: string; layout?: "grid" | "row"; className?: string; draft?: { target: boolean; actual: boolean; evidence: boolean } }) {
+  const states = trackerStates(status, draft);
   return (
     <ol
       className={cn(layout === "grid" ? "grid grid-cols-3 gap-y-3" : "flex items-center justify-between", className)}
@@ -64,7 +68,7 @@ function StepDot({ state, index }: { state: StepState; index: number }) {
   const base = "h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-[12px] font-semibold";
   if (state === "done")
     return (
-      <span className={cn(base, "bg-brand-700 text-white")}>
+      <span className={cn(base, "bg-emerald-600 text-white")}>
         <Check className="h-3.5 w-3.5" strokeWidth={3} />
       </span>
     );

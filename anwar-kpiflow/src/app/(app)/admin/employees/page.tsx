@@ -11,7 +11,7 @@ import type { Prisma } from "@prisma/client";
 export const metadata: Metadata = { title: "Employees" };
 
 export default async function EmployeesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireRole(ROLES.SUPER_ADMIN);
+  await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const sp = await searchParams;
   const where: Prisma.UserWhereInput = {
     role: ROLES.EMPLOYEE,

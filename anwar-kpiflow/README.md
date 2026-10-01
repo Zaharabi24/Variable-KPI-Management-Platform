@@ -19,6 +19,7 @@ Sign in with any account from [`../docs/DEMO_ACCOUNTS.md`](../docs/DEMO_ACCOUNTS
 | Role | Email | Password |
 |---|---|---|
 | Super Admin | superadmin@anwargroup.net | `Admin@2026` |
+| System Admin | sysadmin@anwargroup.net | `Admin@2026` |
 | Department Head (Growth Analytics) | nasrin.islam@anwargroup.net | `Head@2026` |
 | Department Head (Human Resources) | farhana.rahman@anwargroup.net | `Head@2026` |
 | Employee (Growth Analytics) | rafi.ahmed@anwargroup.net | `User@2026` |
@@ -44,7 +45,7 @@ Other scripts:
 **Employee workspace (9.2–9.6)**
 - Profile with editable Corporate Phone Number and designation; sign-up fields read-only.
 - My KPI: parent card with the Create KPI (+) tile fixed on the right and a scrolling, aligned card grid; each card shows status badge, category and weight, Target/Actual/Score, the six-step tracker, time remaining and View Details.
-- Create KPI side panel with the ten required fields plus KPI Category and KPI Period (OI-02), live Achievement and Score preview, drag-and-drop evidence upload with SHA-256 fingerprint, and Submit that enables only when valid.
+- Create KPI side panel with Save as Draft and Submit KPI. A draft needs only the KPI name and Target; once saved the Target is fixed for the employee (only their Department Head, the System Admin or the Super Admin can change it, with a reason). Other fields stay editable until submission. Live Achievement and Score preview, drag-and-drop evidence upload with SHA-256 fingerprint, and Submit that enables only when valid.
 - KPI detail: header with Download report, tracker, target/actual panel, evidence with hash and download, calculation path (Formula, Achievement, Calculated Score, Final Score, KPI Weight — no Curve Applied, Adjustment or Score Version rows), and full Adjustment History.
 - Returned KPIs can be corrected and resubmitted; every version is kept.
 - Performance Summary: Monthly/Quarterly/Yearly switch with month and year pickers, the five metrics (Total KPI Score, Average Achievement, Previous KPI Score, Difference with words, Approved x/y), the ten-column KPI Performance Records table, and three distinct-colour bar charts. Empty periods show a message, never blanks.
@@ -56,6 +57,8 @@ Other scripts:
 - Leaderboard ranked by Average Achievement with rank numbers and green/amber/red bands.
 - Department Heads' own KPIs go to the Super Admin (OI-04).
 
+**System Admin** — invites Department Heads and adds, moves, deactivates or removes employees; sees All KPIs and can change a fixed target.
+
 **Super Admin (9.10–9.11)**
 - Dashboard across all departments (with a department picker), the same queue and decisions for any department, Department Heads by department with invitation status, Employees with search/filters and add/edit/move/deactivate/remove, All KPIs and Approvals, Version Control and History with side-by-side comparison, Units and Departments lists, and the append-only Audit Trail.
 
@@ -63,7 +66,7 @@ Other scripts:
 
 ## Stack
 
-Next.js 15 (App Router, Server Actions) · TypeScript · Tailwind CSS · Prisma + PostgreSQL (Neon) · jose sessions · bcrypt · Recharts · lucide-react.
+Brand: white with Anwar master colour #DE3332 and the ANWARS mark (`public/brand/`). Next.js 15 (App Router, Server Actions) · TypeScript · Tailwind CSS · Prisma + PostgreSQL (Neon) · jose sessions · bcrypt · Recharts · lucide-react.
 The BRD leaves the stack open (OI-09). Evidence files are stored in the database with their SHA-256 hash so the app runs on hosts with ephemeral disks such as Vercel.
 
 ## Project layout

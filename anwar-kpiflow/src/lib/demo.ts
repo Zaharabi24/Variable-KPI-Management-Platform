@@ -10,7 +10,7 @@ export const DEMO_PASSWORDS = {
 } as const;
 
 export type DemoAccount = {
-  role: "Super Admin" | "Department Head" | "Employee";
+  role: "Super Admin" | "System Admin" | "Department Head" | "Employee";
   name: string;
   email: string;
   password: string;
@@ -25,6 +25,7 @@ const EMP = DEMO_PASSWORDS.EMPLOYEE;
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   { role: "Super Admin", name: "Sarwar Hossain", email: "superadmin@anwargroup.net", password: SA, employeeId: "AG-0001", department: "All departments", designation: "Group Head of Performance" },
+  { role: "System Admin", name: "Tanjila Hoque", email: "sysadmin@anwargroup.net", password: SA, employeeId: "AG-0002", department: "All departments", designation: "System Administrator" },
 
   { role: "Department Head", name: "Nasrin Islam", email: "nasrin.islam@anwargroup.net", password: DH, employeeId: "AG-0101", department: "Growth Analytics", designation: "Head of Growth Analytics" },
   { role: "Department Head", name: "Kamal Hasan", email: "kamal.hasan@anwargroup.net", password: DH, employeeId: "AG-0102", department: "Growth Analytics", designation: "Deputy Head (2nd head of the same department)" },

@@ -45,6 +45,19 @@ export function navFor(role: Role, pendingCount: number): { section: string; ite
       },
     ];
   }
+  if (role === ROLES.SYSTEM_ADMIN) {
+    return [
+      {
+        section: "Administration",
+        items: [
+          { href: "/admin/department-heads", label: "Department Head", icon: UserCog },
+          { href: "/admin/employees", label: "Employees", icon: Users },
+          { href: "/admin/kpis", label: "All KPIs", icon: ListChecks },
+        ],
+      },
+      { section: "Account", items: [{ href: "/profile", label: "Profile", icon: UserCircle2 }] },
+    ];
+  }
   return [
     {
       section: "Overview",
@@ -66,10 +79,7 @@ export function navFor(role: Role, pendingCount: number): { section: string; ite
         { href: "/dev/outbox", label: "Email Outbox", icon: Mail },
       ],
     },
-    {
-      section: "Account",
-      items: [{ href: "/profile", label: "Profile", icon: UserCircle2 }],
-    },
+    { section: "Account", items: [{ href: "/profile", label: "Profile", icon: UserCircle2 }] },
   ];
 }
 
@@ -86,28 +96,30 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const groups = navFor(user.role, pendingCount);
+  const scope = user.department ? user.department.name : user.role === ROLES.EMPLOYEE ? "" : "All departments";
 
   return (
     <>
       {open && <div className="fixed inset-0 z-40 bg-ink-900/40 lg:hidden" onClick={onClose} aria-hidden />}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-[264px] bg-brand-950 text-white flex flex-col transition-transform lg:translate-x-0 lg:static lg:z-auto",
+          "fixed inset-y-0 left-0 z-50 w-[264px] bg-white border-r border-ink-100 flex flex-col transition-transform lg:translate-x-0 lg:static lg:z-auto",
           open ? "translate-x-0" : "-translate-x-full",
         )}
         aria-label="Sidebar"
       >
-        <div className="flex items-center justify-between h-16 px-5 border-b border-white/10">
-          <Logo variant="dark" />
-          <button className="lg:hidden text-white/70 hover:text-white" onClick={onClose} aria-label="Close menu">
+        <div className="flex items-center justify-between h-16 px-5 border-b border-ink-100">
+          <Logo />
+          <button className="lg:hidden text-ink-500 hover:text-ink-900" onClick={onClose} aria-label="Close menu">
             <X className="h-5 w-5" />
           </button>
         </div>
+        <div className="h-1 bg-brand-500" aria-hidden />
 
         <nav className="flex-1 overflow-y-auto scroll-thin px-3 py-4 space-y-6">
           {groups.map((g) => (
             <div key={g.section}>
-              <div className="px-3 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/40">{g.section}</div>
+              <div className="px-3 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-ink-400">{g.section}</div>
               <ul className="space-y-0.5">
                 {g.items.map((it) => {
                   const active = pathname === it.href || pathname.startsWith(it.href + "/");
@@ -117,15 +129,16 @@ export function Sidebar({
                         href={it.href}
                         onClick={onClose}
                         className={cn(
-                          "group flex items-center gap-3 rounded-lg px-3 h-10 text-[13.5px] transition-colors",
-                          active ? "bg-white/12 text-white font-medium" : "text-white/70 hover:bg-white/8 hover:text-white",
+                          "group relative flex items-center gap-3 rounded-lg px-3 h-10 text-[13.5px] transition-colors",
+                          active ? "bg-brand-50 text-brand-700 font-semibold" : "text-ink-700 hover:bg-ink-100/70 hover:text-ink-900",
                         )}
                         aria-current={active ? "page" : undefined}
                       >
-                        <it.icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-brand-200" : "text-white/50 group-hover:text-white/80")} />
+                        {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-brand-500" aria-hidden />}
+                        <it.icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-brand-500" : "text-ink-400 group-hover:text-ink-700")} />
                         <span className="truncate">{it.label}</span>
                         {it.badge ? (
-                          <span className="ml-auto min-w-[22px] h-5 px-1.5 rounded-full bg-amber-400 text-brand-950 text-[11px] font-bold flex items-center justify-center tnum">
+                          <span className="ml-auto min-w-[22px] h-5 px-1.5 rounded-full bg-brand-500 text-white text-[11px] font-bold flex items-center justify-center tnum">
                             {it.badge}
                           </span>
                         ) : null}
@@ -138,11 +151,11 @@ export function Sidebar({
           ))}
         </nav>
 
-        <div className="px-4 py-4 border-t border-white/10">
-          <div className="text-[13px] font-medium text-white truncate">{user.fullName}</div>
-          <div className="text-[12px] text-white/55 truncate">
+        <div className="px-4 py-4 border-t border-ink-100 bg-surface">
+          <div className="text-[13px] font-medium text-ink-900 truncate">{user.fullName}</div>
+          <div className="text-[12px] text-ink-500 truncate">
             {ROLE_LABELS[user.role]}
-            {user.department ? ` · ${user.department.name}` : user.role === ROLES.SUPER_ADMIN ? " · All departments" : ""}
+            {scope ? ` · ${scope}` : ""}
           </div>
         </div>
       </aside>

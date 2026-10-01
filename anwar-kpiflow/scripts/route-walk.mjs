@@ -30,6 +30,7 @@ function findChrome() {
 const ROLES = {
   employee: { email: "rafi.ahmed@anwargroup.net", pw: "User@2026", routes: ["/my-kpi", "/performance", "/performance?type=QUARTERLY", "/performance?type=YEARLY", "/profile"] },
   head: { email: "nasrin.islam@anwargroup.net", pw: "Head@2026", routes: ["/dashboard", "/dashboard?type=QUARTERLY", "/pending-requests", "/pending-requests?all=1", "/leaderboard", "/my-kpi", "/performance", "/profile"] },
+  sysadmin: { email: "sysadmin@anwargroup.net", pw: "Admin@2026", routes: ["/admin/employees", "/admin/department-heads", "/admin/kpis", "/profile"] },
   admin: { email: "superadmin@anwargroup.net", pw: "Admin@2026", routes: ["/dashboard", "/pending-requests?all=1", "/leaderboard", "/admin/department-heads", "/admin/employees", "/admin/employees?q=rafi", "/admin/kpis", "/admin/kpis?type=YEARLY", "/admin/versions", "/admin/organisation", "/admin/audit", "/profile", "/dev/outbox"] },
 };
 const PUBLIC = ["/login", "/register", "/forgot-password", "/setup-password?token=bad"];

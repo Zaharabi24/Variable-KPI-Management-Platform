@@ -70,8 +70,8 @@ async function createKpi(page, { name, target, actual, weight, evidencePath }) {
   const posts = [];
   const onResp = (r) => { if (r.request().method() === "POST") posts.push(`${r.status()} ${r.url().replace(BASE, "")}`); };
   page.on("response", onResp);
-  const enabled = await page.locator('button[form="kpi-form"]').isEnabled();
-  await page.click('button[form="kpi-form"]');
+  const enabled = await page.locator('button[form="kpi-form"][value="submit"]').isEnabled();
+  await page.click('button[form="kpi-form"][value="submit"]');
   await page.waitForSelector("text=submitted to your Approval Person", { timeout: T }).catch(async (err) => {
     console.log(`DIAG createKpi(${name}): submit was enabled=${enabled} | url=${page.url()} | drawer open=${await page.locator("#kpi-form").count()} | posts=${posts.join(" || ") || "none"}`);
     console.log("DIAG alerts:", (await page.locator("[role=alert], [role=status]").allInnerTexts()).join(" / ").slice(0, 300), "| form errors:", (await page.locator("#kpi-form p.text-red-600").allInnerTexts()).join(" / "), "| footer:", (await page.locator("[role=dialog] p").allInnerTexts()).slice(-1)[0]);
@@ -104,7 +104,7 @@ try {
 
     await page.click('button[aria-label="Create KPI"]');
     await page.waitForSelector("#name", { timeout: T });
-    const submitBtn = page.locator('button[form="kpi-form"]');
+    const submitBtn = page.locator('button[form="kpi-form"][value="submit"]');
     check("Submit disabled while form incomplete (AC-09)", await submitBtn.isDisabled());
     await page.fill("#name", K.approve);
     await page.fill("#target", "500000");
@@ -125,6 +125,21 @@ try {
     await page.waitForSelector(`article:has-text('${K.approve}')`, { timeout: T });
     const card = page.locator(`article:has-text('${K.approve}')`).first();
     check("New card: Submitted badge + Review step highlighted (AC-12)", (await card.locator("text=Submitted").count()) > 0 && (await card.locator("ol li:nth-child(5)").textContent()).includes("Review"));
+
+    // Draft: name + target only, then target is fixed
+    await page.goto(`${BASE}/my-kpi`, { waitUntil: "networkidle" });
+    await page.click('button[aria-label="Create KPI"]');
+    await page.waitForSelector("#name", { timeout: T });
+    await page.fill("#name", `E2E Draft ${RUN}`);
+    await page.fill("#target", "1000");
+    check("Save as Draft enabled with name + target only", await page.locator('button[value="draft"]').isEnabled());
+    await page.click('button[value="draft"]');
+    await page.waitForSelector("text=saved as draft", { timeout: T });
+    await page.waitForSelector(`article:has-text('E2E Draft ${RUN}')`, { timeout: T });
+    await page.locator(`article:has-text('E2E Draft ${RUN}')`).first().locator("button:has-text('Continue draft')").click();
+    await page.waitForSelector("#kpi-form", { timeout: T });
+    check("Target is fixed after the draft is saved", await page.locator("#target").isDisabled());
+    await page.keyboard.press("Escape");
 
     await createKpi(page, { name: K.adjust, target: 5, actual: 4, weight: 10, evidencePath: evidence });
     await createKpi(page, { name: K.ret, target: 15, actual: 8, weight: 30, evidencePath: evidence });
@@ -242,11 +257,11 @@ try {
     await page.setInputFiles("#evidence", evidence);
     const posts = [];
     page.on("response", (r) => { if (r.request().method() === "POST") posts.push(`${r.status()} ${r.url().replace(BASE, "")} redirect=${r.headers()["x-action-redirect"] ?? "-"}`); });
-    await page.click('button[form="kpi-form"]');
+    await page.click('button[form="kpi-form"][value="submit"]');
     // The action answers with a client-side redirect (pushState); poll the URL rather than wait for a document navigation.
     await page.waitForFunction(() => location.search.includes("resubmitted=1"), null, { timeout: T }).catch(async (err) => {
       console.log("DIAG url:", page.url(), "| drawer open:", await page.locator("#kpi-form").count(), "| alerts:", (await page.locator("[role=alert]").allInnerTexts()).join(" / ").slice(0, 300));
-      console.log("DIAG posts:", posts.join(" || ") || "none", "| submit enabled:", await page.locator('button[form="kpi-form"]').isEnabled().catch(() => "n/a"));
+      console.log("DIAG posts:", posts.join(" || ") || "none", "| submit enabled:", await page.locator('button[form="kpi-form"][value="submit"]').isEnabled().catch(() => "n/a"));
       console.log("DIAG form errors:", (await page.locator("#kpi-form p.text-red-600").allInnerTexts()).join(" / "));
       await shot(page, "_diag-resubmit.png");
       throw err;

@@ -45,11 +45,19 @@ export async function requireRole(...roles: Role[]): Promise<CurrentUser> {
 
 export function homeFor(role: string): string {
   if (role === ROLES.EMPLOYEE) return "/my-kpi";
+  if (role === ROLES.SYSTEM_ADMIN) return "/admin/employees";
   return "/dashboard";
 }
 
 export function isSuperAdmin(u: { role: string }) {
   return u.role === ROLES.SUPER_ADMIN;
+}
+export function isSystemAdmin(u: { role: string }) {
+  return u.role === ROLES.SYSTEM_ADMIN;
+}
+/** Super Admin and System Admin: invite Department Heads, add and remove employees. */
+export function isAdmin(u: { role: string }) {
+  return u.role === ROLES.SUPER_ADMIN || u.role === ROLES.SYSTEM_ADMIN;
 }
 export function isDeptHead(u: { role: string }) {
   return u.role === ROLES.DEPARTMENT_HEAD;
@@ -66,9 +74,9 @@ export function canReview(u: { role: string }) {
  */
 export function canViewKpi(
   user: CurrentUser,
-  kpi: { ownerId: string; approverId: string; owner: { departmentId: string | null; role: string } },
+  kpi: { ownerId: string; approverId: string | null; owner: { departmentId: string | null; role: string } },
 ): boolean {
-  if (isSuperAdmin(user)) return true;
+  if (isSuperAdmin(user) || isSystemAdmin(user)) return true;
   if (kpi.ownerId === user.id) return true;
   if (isDeptHead(user)) {
     if (kpi.approverId === user.id) return true;
@@ -79,9 +87,22 @@ export function canViewKpi(
 }
 
 /** Can this user act (approve/adjust/return/reject/edit/delete) on this KPI? BR-10: never on own KPI. */
+/** A target is set once by the employee; only their Department Head, the System Admin or the Super Admin may change it afterwards. */
+export function canChangeTarget(
+  user: CurrentUser,
+  kpi: { ownerId: string; approverId: string | null; owner: { departmentId: string | null; role: string } },
+): boolean {
+  if (kpi.ownerId === user.id) return false;
+  if (isSuperAdmin(user) || isSystemAdmin(user)) return true;
+  if (isDeptHead(user)) {
+    return kpi.approverId === user.id || (!!kpi.owner.departmentId && kpi.owner.departmentId === user.departmentId && kpi.owner.role === ROLES.EMPLOYEE);
+  }
+  return false;
+}
+
 export function canDecideKpi(
   user: CurrentUser,
-  kpi: { ownerId: string; approverId: string; owner: { departmentId: string | null; role: string } },
+  kpi: { ownerId: string; approverId: string | null; owner: { departmentId: string | null; role: string } },
 ): boolean {
   if (kpi.ownerId === user.id) return false;
   if (isSuperAdmin(user)) return true;

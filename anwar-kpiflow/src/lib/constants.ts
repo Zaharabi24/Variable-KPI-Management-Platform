@@ -2,6 +2,7 @@ export const COMPANY_DOMAIN = "@anwargroup.net";
 
 export const ROLES = {
   SUPER_ADMIN: "SUPER_ADMIN",
+  SYSTEM_ADMIN: "SYSTEM_ADMIN",
   DEPARTMENT_HEAD: "DEPARTMENT_HEAD",
   EMPLOYEE: "EMPLOYEE",
 } as const;
@@ -9,11 +10,13 @@ export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: "Super Admin",
+  SYSTEM_ADMIN: "System Admin",
   DEPARTMENT_HEAD: "Department Head",
   EMPLOYEE: "Employee",
 };
 
 export const KPI_STATUS = {
+  DRAFT: "DRAFT",
   SUBMITTED: "SUBMITTED",
   RETURNED: "RETURNED",
   APPROVED: "APPROVED",
@@ -23,6 +26,7 @@ export const KPI_STATUS = {
 export type KpiStatus = (typeof KPI_STATUS)[keyof typeof KPI_STATUS];
 
 export const STATUS_LABELS: Record<KpiStatus, string> = {
+  DRAFT: "Draft",
   SUBMITTED: "Submitted",
   RETURNED: "Returned",
   APPROVED: "Approved",
