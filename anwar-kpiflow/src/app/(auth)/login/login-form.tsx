@@ -19,6 +19,7 @@ export function LoginForm({ setupDone, demo, next }: { setupDone: boolean; demo:
   const quick = [
     { key: "SUPER_ADMIN", label: "Super Admin Account", account: demo.find((d) => d.role === "Super Admin") },
     { key: "SYSTEM_ADMIN", label: "System Admin Account", account: demo.find((d) => d.role === "System Admin") },
+    { key: "FINANCE_ADMIN", label: "Finance Admin Account", account: demo.find((d) => d.role === "Finance Admin") },
     { key: "DEPARTMENT_HEAD", label: "Department Head Account", account: demo.find((d) => d.role === "Department Head") },
     { key: "EMPLOYEE", label: "Employee Account", account: demo.find((d) => d.role === "Employee") },
   ].filter((q) => q.account) as { key: string; label: string; account: DemoAccount }[];

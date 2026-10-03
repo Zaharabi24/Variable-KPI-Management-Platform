@@ -9,6 +9,7 @@ Passwords by user type:
 |---|---|
 | Super Admin | `Admin@2026` |
 | System Admin | `Admin@2026` |
+| Finance Admin | `Finance@2026` |
 | Department Head (Admin) | `Head@2026` |
 | Employee (User) | `User@2026` |
 
@@ -23,6 +24,12 @@ Passwords by user type:
 | Name | Email | Employee ID | Scope |
 |---|---|---|---|
 | Tanjila Hoque | sysadmin@anwargroup.net | AG-0002 | Invites Department Heads; adds, moves, deactivates and removes employees; can change any employee's fixed KPI target |
+
+## Finance Admin
+
+| Name | Email | Employee ID | Scope |
+|---|---|---|---|
+| Mahbub Alam | financeadmin@anwargroup.net | AG-0003 | Variable Pay payments only: sees every request the Super Admin approves and confirms the payment amount |
 
 ## Department Heads (Admin)
 
