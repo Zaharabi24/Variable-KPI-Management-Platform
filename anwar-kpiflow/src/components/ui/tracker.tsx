@@ -32,21 +32,26 @@ export function trackerStates(status: string, draft?: { target: boolean; actual:
 
 export function Tracker({ status, layout = "grid", className, draft }: { status: string; layout?: "grid" | "row"; className?: string; draft?: { target: boolean; actual: boolean; evidence: boolean } }) {
   const states = trackerStates(status, draft);
+  const grid = layout === "grid";
   return (
     <ol
-      className={cn(layout === "grid" ? "grid grid-cols-3 gap-y-3" : "flex items-center justify-between", className)}
+      // Grid (KPI cards): three content-sized columns spread across the card, so both rows stay aligned.
+      // Cards are narrow, so connectors are left out and labels truncate instead of running into the next step.
+      className={cn(grid ? "grid grid-cols-[auto_auto_auto] justify-between gap-x-1 gap-y-2.5" : "flex items-center justify-between", className)}
       aria-label="KPI progress"
     >
       {TRACKER_STEPS.map((label, i) => {
         const s = states[i];
         const last = i === TRACKER_STEPS.length - 1;
-        const rowLast = layout === "grid" && (i + 1) % 3 === 0;
+        const text = s === "returned" ? "Returned" : s === "rejected" ? "Rejected" : label;
         return (
-          <li key={label} className={cn("flex items-center min-w-0", layout === "row" && !last && "flex-1")}>
-            <StepDot state={s} index={i + 1} />
+          <li key={label} className={cn("flex items-center min-w-0", !grid && !last && "flex-1")}>
+            <StepDot state={s} index={i + 1} compact={grid} />
             <span
+              title={text}
               className={cn(
-                "ml-2 text-[12.5px] whitespace-nowrap",
+                "whitespace-nowrap",
+                grid ? "ml-1.5 text-[11.5px] min-w-0 truncate" : "ml-2 text-[12.5px]",
                 s === "done" && "text-ink-700",
                 s === "current" && "text-amber-800 font-semibold",
                 s === "todo" && "text-ink-400",
@@ -54,9 +59,9 @@ export function Tracker({ status, layout = "grid", className, draft }: { status:
                 s === "rejected" && "text-red-700 font-semibold",
               )}
             >
-              {s === "returned" ? "Returned" : s === "rejected" ? "Rejected" : label}
+              {text}
             </span>
-            {!last && !rowLast && <span className="mx-2 h-px flex-1 min-w-[10px] bg-ink-200" aria-hidden />}
+            {!grid && !last && <span className="mx-2 h-px flex-1 min-w-[10px] bg-ink-200" aria-hidden />}
           </li>
         );
       })}
@@ -64,8 +69,11 @@ export function Tracker({ status, layout = "grid", className, draft }: { status:
   );
 }
 
-function StepDot({ state, index }: { state: StepState; index: number }) {
-  const base = "h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-[12px] font-semibold";
+function StepDot({ state, index, compact }: { state: StepState; index: number; compact?: boolean }) {
+  const base = cn(
+    "shrink-0 rounded-full flex items-center justify-center font-semibold tabular-nums",
+    compact ? "h-6 w-6 text-[11px]" : "h-7 w-7 text-[12px]",
+  );
   if (state === "done") return <span className={cn(base, "bg-emerald-600 text-white")}>{index}</span>;
   if (state === "current") return <span className={cn(base, "border-2 border-amber-500 text-amber-800 bg-amber-50")}>{index}</span>;
   if (state === "returned")
