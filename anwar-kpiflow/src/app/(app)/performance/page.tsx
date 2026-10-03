@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowDownRight, ArrowUpRight, BarChart3, FileText } from "lucide-react";
 import { requireUser, isSuperAdmin } from "@/lib/auth";
 import { chartSeries, parsePeriod, performanceSummary } from "@/lib/reporting";
-import { PageHeader, Card, CardHeader, StatTile, EmptyState } from "@/components/ui/card";
+import { PageHeader, Card, CardHeader, StatTile, MetricBar, EmptyState } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { Table, Th, Td } from "@/components/ui/table";
 import { PeriodFilter } from "@/components/kpi/period-filter";
@@ -22,6 +22,9 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
   const [summary, series] = await Promise.all([performanceSummary(user.id, period), chartSeries(user.id, period.year)]);
   const m = summary.metrics;
   const noun = periodNoun(period.type);
+  // Difference as a percentage of the previous score, so its bar has a meaningful scale.
+  const changePct =
+    m.difference === null || m.previousKpiScore === null || m.previousKpiScore <= 0 ? null : Math.round((m.difference / m.previousKpiScore) * 1000) / 10;
   const highlight = period.type === "MONTHLY" ? MONTHS_SHORT[period.index - 1] : period.type === "QUARTERLY" ? `Q${period.index}` : String(period.year);
 
   return (
@@ -41,23 +44,39 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
         <>
           {/* FR-PS-02 — five summary metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <StatTile label="Total KPI Score" value={m.totalKpiScore === null ? "—" : fmtNum(m.totalKpiScore)} hint={m.totalKpiScore === null ? "No approved KPIs yet" : "Weighted by KPI weight"} />
-            <StatTile label="Average Achievement" value={m.averageAchievement === null ? "—" : fmtPct(m.averageAchievement)} hint="Across approved KPIs" />
-            <StatTile label="Previous KPI Score" value={m.previousKpiScore === null ? "—" : fmtNum(m.previousKpiScore)} hint={summary.previous.label} />
+            <StatTile label="Total KPI Score" value={m.totalKpiScore === null ? "—" : fmtNum(m.totalKpiScore)} hint={m.totalKpiScore === null ? "No approved KPIs yet" : "Weighted by KPI weight"}>
+              <MetricBar value={m.totalKpiScore} max={100} caption="of 100 points" />
+            </StatTile>
+            <StatTile label="Average Achievement" value={m.averageAchievement === null ? "—" : fmtPct(m.averageAchievement)} hint="Across approved KPIs">
+              <MetricBar value={m.averageAchievement} max={100} caption="of 100% target" />
+            </StatTile>
+            <StatTile label="Previous KPI Score" value={m.previousKpiScore === null ? "—" : fmtNum(m.previousKpiScore)} hint={summary.previous.label}>
+              <MetricBar value={m.previousKpiScore} max={100} caption="of 100 points" />
+            </StatTile>
             <StatTile
               label="Difference"
               value={
                 m.difference === null ? "—" : (
                   <span className="inline-flex items-center gap-1">
-                    {m.difference >= 0 ? <ArrowUpRight className="h-5 w-5 text-brand-700" /> : <ArrowDownRight className="h-5 w-5 text-red-600" />}
+                    {m.difference >= 0 ? <ArrowUpRight className="h-5 w-5 text-emerald-600" /> : <ArrowDownRight className="h-5 w-5 text-red-600" />}
                     {fmtNum(Math.abs(m.difference))}
                   </span>
                 )
               }
-              tone={m.difference === null ? "default" : m.difference >= 0 ? "good" : "bad"}
+              tone={m.difference === null ? "default" : m.difference >= 0 ? "up" : "bad"}
               hint={m.differenceText ?? `No comparable ${noun}`}
-            />
-            <StatTile label="Approved KPIs" value={<>{m.approvedCount}<span className="text-ink-300">/</span>{m.totalCount}</>} hint="Approved + Adjusted / submitted" />
+            >
+              <MetricBar
+                value={changePct === null ? null : Math.abs(changePct)}
+                max={100}
+                tone={changePct !== null && changePct < 0 ? "negative" : "positive"}
+                caption={`change vs previous ${noun}`}
+                percentLabel={changePct === null ? undefined : `${changePct >= 0 ? "+" : "−"}${fmtNum(Math.abs(changePct), 1)}%`}
+              />
+            </StatTile>
+            <StatTile label="Approved KPIs" value={<>{m.approvedCount}<span className="text-ink-300">/</span>{m.totalCount}</>} hint="Approved + Adjusted / submitted">
+              <MetricBar value={m.totalCount > 0 ? m.approvedCount : null} max={m.totalCount} caption="approved" />
+            </StatTile>
           </div>
 
           {/* FR-PS-03 — exactly the ten columns */}
