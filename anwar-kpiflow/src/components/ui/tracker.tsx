@@ -1,4 +1,4 @@
-import { Check, X, Undo2 } from "lucide-react";
+import { X, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TRACKER_STEPS } from "@/lib/constants";
 
@@ -66,12 +66,7 @@ export function Tracker({ status, layout = "grid", className, draft }: { status:
 
 function StepDot({ state, index }: { state: StepState; index: number }) {
   const base = "h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-[12px] font-semibold";
-  if (state === "done")
-    return (
-      <span className={cn(base, "bg-emerald-600 text-white")}>
-        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-      </span>
-    );
+  if (state === "done") return <span className={cn(base, "bg-emerald-600 text-white")}>{index}</span>;
   if (state === "current") return <span className={cn(base, "border-2 border-amber-500 text-amber-800 bg-amber-50")}>{index}</span>;
   if (state === "returned")
     return (
