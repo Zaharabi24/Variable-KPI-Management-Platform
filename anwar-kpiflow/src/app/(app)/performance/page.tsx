@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowDownRight, ArrowUpRight, BarChart3, FileText } from "lucide-react";
 import { requireUser, isSuperAdmin } from "@/lib/auth";
 import { chartSeries, parsePeriod, performanceSummary } from "@/lib/reporting";
-import { PageHeader, Card, CardHeader, StatTile, MetricBar, EmptyState } from "@/components/ui/card";
+import { PageHeader, Card, CardHeader, StatTile, MetricBar, BandLegend, EmptyState } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { Table, Th, Td } from "@/components/ui/table";
 import { PeriodFilter } from "@/components/kpi/period-filter";
@@ -43,15 +43,15 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
       ) : (
         <>
           {/* FR-PS-02 — five summary metrics */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-3">
             <StatTile label="Total KPI Score" value={m.totalKpiScore === null ? "—" : fmtNum(m.totalKpiScore)} hint={m.totalKpiScore === null ? "No approved KPIs yet" : "Weighted by KPI weight"}>
-              <MetricBar value={m.totalKpiScore} max={100} caption="of 100 points" />
+              <MetricBar value={m.totalKpiScore} max={100} caption="of 100 points" tone="band" />
             </StatTile>
             <StatTile label="Average Achievement" value={m.averageAchievement === null ? "—" : fmtPct(m.averageAchievement)} hint="Across approved KPIs">
-              <MetricBar value={m.averageAchievement} max={100} caption="of 100% target" />
+              <MetricBar value={m.averageAchievement} max={100} caption="of 100% target" tone="band" />
             </StatTile>
             <StatTile label="Previous KPI Score" value={m.previousKpiScore === null ? "—" : fmtNum(m.previousKpiScore)} hint={summary.previous.label}>
-              <MetricBar value={m.previousKpiScore} max={100} caption="of 100 points" />
+              <MetricBar value={m.previousKpiScore} max={100} caption="of 100 points" tone="band" />
             </StatTile>
             <StatTile
               label="Difference"
@@ -75,9 +75,10 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
               />
             </StatTile>
             <StatTile label="Approved KPIs" value={<>{m.approvedCount}<span className="text-ink-300">/</span>{m.totalCount}</>} hint="Approved + Adjusted / submitted">
-              <MetricBar value={m.totalCount > 0 ? m.approvedCount : null} max={m.totalCount} caption="approved" />
+              <MetricBar value={m.totalCount > 0 ? m.approvedCount : null} max={m.totalCount} caption="approved" tone="band" />
             </StatTile>
           </div>
+          <BandLegend className="mb-6 px-1" />
 
           {/* FR-PS-03 — exactly the ten columns */}
           <Card className="mb-6">

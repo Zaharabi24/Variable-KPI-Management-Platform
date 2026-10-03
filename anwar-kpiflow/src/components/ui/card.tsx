@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { LEADERBOARD_BANDS } from "@/lib/constants";
 
 export function Card({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
@@ -100,10 +101,24 @@ export function StatTile({
   );
 }
 
+const BAR_TONES = {
+  positive: { fill: "bg-emerald-600", track: "bg-emerald-100", dot: "bg-emerald-600" },
+  moderate: { fill: "bg-amber-500", track: "bg-amber-100", dot: "bg-amber-500" },
+  negative: { fill: "bg-red-500", track: "bg-red-100", dot: "bg-red-500" },
+} as const;
+
+/** Performance band on the 100-point scale: Good >= high, Moderate >= middle, Low below (same thresholds as the leaderboard). */
+export function performanceBand(pct: number): { tone: keyof typeof BAR_TONES; label: string } {
+  if (pct >= LEADERBOARD_BANDS.high) return { tone: "positive", label: "Good" };
+  if (pct >= LEADERBOARD_BANDS.middle) return { tone: "moderate", label: "Moderate" };
+  return { tone: "negative", label: "Low" };
+}
+
 /**
  * Metric progress bar for stat tiles: slim track in a lighter step of the fill colour,
  * with a caption on the left and the percentage on the right.
- * Positive progress is always green; "negative" (a decline) is red; "empty" is a neutral track with no value.
+ * tone "band" colours the bar by performance band (green / yellow / red) and names the band beside the percentage;
+ * "positive" / "negative" force green / red (used for direction, e.g. Difference). No value shows a neutral empty track.
  */
 export function MetricBar({
   value,
@@ -115,34 +130,56 @@ export function MetricBar({
   value: number | null;
   max?: number;
   caption: string;
-  tone?: "positive" | "negative";
+  tone?: "positive" | "negative" | "band";
   /** Overrides the right-hand label (defaults to the fill percentage). */
   percentLabel?: string;
 }) {
   const empty = value === null || !(max > 0);
   const pct = empty ? 0 : Math.max(0, Math.min(100, (value / max) * 100));
-  const track = empty ? "bg-ink-100" : tone === "negative" ? "bg-red-100" : "bg-emerald-100";
-  const fill = tone === "negative" ? "bg-red-500" : "bg-emerald-600";
-  const right = empty ? "—" : (percentLabel ?? `${Math.round(pct * 10) / 10}%`);
+  const band = tone === "band" && !empty ? performanceBand(pct) : null;
+  const colors = BAR_TONES[band ? band.tone : tone === "negative" ? "negative" : "positive"];
+  const right = empty ? "—" : (percentLabel ?? `${Math.round(pct * 100) / 100}%`);
   return (
     <div>
       <div
-        className={cn("h-1.5 w-full rounded-full overflow-hidden", track)}
+        className={cn("h-1.5 w-full rounded-full overflow-hidden", empty ? "bg-ink-100" : colors.track)}
         role="progressbar"
         aria-label={caption}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(pct)}
-        aria-valuetext={empty ? "No data" : `${right} · ${caption}`}
+        aria-valuetext={empty ? "No data" : `${right} · ${caption}${band ? ` · ${band.label} performance` : ""}`}
       >
         {/* A non-zero value always shows at least a sliver so it never reads as empty. */}
-        <div className={cn("h-full rounded-full transition-[width] duration-500 ease-out", fill)} style={{ width: `${pct}%`, minWidth: pct > 0 ? 6 : 0 }} />
+        <div className={cn("h-full rounded-full transition-[width] duration-500 ease-out", colors.fill)} style={{ width: `${pct}%`, minWidth: pct > 0 ? 6 : 0 }} />
       </div>
       <div className="mt-1.5 flex items-center justify-between gap-2 text-[11.5px] leading-4">
         <span className="text-ink-400 truncate">{caption}</span>
-        <span className="tnum font-medium text-ink-700 shrink-0">{right}</span>
+        <span className="tnum font-medium text-ink-700 shrink-0">
+          {right}
+          {band && <span className="font-normal text-ink-500"> · {band.label}</span>}
+        </span>
       </div>
     </div>
+  );
+}
+
+/** Legend for the performance bands used by MetricBar tone="band". */
+export function BandLegend({ className }: { className?: string }) {
+  const items = [
+    { dot: BAR_TONES.positive.dot, text: `Good · ${LEADERBOARD_BANDS.high} and above` },
+    { dot: BAR_TONES.moderate.dot, text: `Moderate · ${LEADERBOARD_BANDS.middle} to ${LEADERBOARD_BANDS.high - 0.01}` },
+    { dot: BAR_TONES.negative.dot, text: `Low · below ${LEADERBOARD_BANDS.middle}` },
+  ];
+  return (
+    <ul className={cn("flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px] text-ink-500", className)} aria-label="Performance bands on a 100-point scale">
+      {items.map((it) => (
+        <li key={it.text} className="inline-flex items-center gap-1.5">
+          <span className={cn("h-2 w-2 rounded-full", it.dot)} aria-hidden />
+          {it.text}
+        </li>
+      ))}
+    </ul>
   );
 }
 
