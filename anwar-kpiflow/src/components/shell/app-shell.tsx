@@ -12,6 +12,7 @@ import { initials } from "@/lib/utils";
 const TITLES: [string, string][] = [
   ["/dashboard", "Dashboard"],
   ["/pending-requests", "KPI Pending Request"],
+  ["/variable-pay", "Variable Pay"],
   ["/leaderboard", "Leaderboard"],
   ["/my-kpi/", "KPI Details"],
   ["/my-kpi", "My KPI"],

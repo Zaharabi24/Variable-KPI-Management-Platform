@@ -51,6 +51,14 @@ model User {
   decisions       ReviewDecision[]
   auditLogs       AuditLog[]
   evidenceFiles   EvidenceFile[]
+
+  // Variable Pay
+  dateOfJoining       DateTime? // DOJ
+  variablePayEligible Boolean   @default(false)
+  supervisorName      String?
+  vpEvaluations       VariablePayEvaluation[] @relation("VpEmployee")
+  vpEvaluated         VariablePayEvaluation[] @relation("VpEvaluator")
+  vpHrNotes           VariablePayEvaluation[] @relation("VpHrNoteBy")
 }
 
 model AccountToken {
@@ -167,4 +175,64 @@ model EmailLog {
 model Setting {
   key   String @id
   value String
+}
+
+/// Monthly Variable Pay evaluation of one eligible employee by their Department Head.
+/// Employee details are snapshotted on every save so a submitted record stays reproducible.
+model VariablePayEvaluation {
+  id          String @id @default(cuid())
+  employeeId  String
+  employee    User   @relation("VpEmployee", fields: [employeeId], references: [id])
+  evaluatorId String
+  evaluator   User   @relation("VpEvaluator", fields: [evaluatorId], references: [id])
+  periodYear  Int
+  periodMonth Int
+  status      String @default("DRAFT") // DRAFT | SUBMITTED | RETURNED
+
+  // Snapshot of the "Individual" columns
+  empCode        String // ID
+  empName        String // Name
+  doj            DateTime? // DOJ
+  days           Int? // Days
+  tenure         String? // Tenure
+  designation    String? // Designation
+  departmentName String? // Department
+  departmentId   String?
+  supervisor     String? // Supervisor
+
+  // Scores (maxima in lib/variable-pay.ts): KPI (5) 50, Quality of work 15, Time Line of Deliverables 20, Stakeholder & Peer Review 5, Attendance 10
+  kpiScore               Float?
+  qualityOfWork          Float?
+  timelineOfDeliverables Float?
+  stakeholderPeerReview  Float?
+  attendance             Float?
+  totalScore             Float?
+
+  remarks      String?   @db.Text // Remarks
+  hrNote       String?   @db.Text // HR Note
+  hrNoteById   String?
+  hrNoteBy     User?     @relation("VpHrNoteBy", fields: [hrNoteById], references: [id])
+  hrNoteAt     DateTime?
+  returnReason String?   @db.Text
+  submittedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tasks VariablePayTask[]
+
+  @@unique([employeeId, periodYear, periodMonth])
+  @@index([periodYear, periodMonth, departmentId])
+}
+
+/// "KPI Score Break Down": 5 Major Tasks, each scored out of 10.
+model VariablePayTask {
+  id           String                @id @default(cuid())
+  evaluationId String
+  evaluation   VariablePayEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  sl           Int // SL.
+  task         String                @db.Text // 5 Major Tasks
+  score        Float? // Score (Out of 10 for Each)
+  remarks      String?               @db.Text // Remarks
+
+  @@unique([evaluationId, sl])
 }

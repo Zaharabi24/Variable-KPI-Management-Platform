@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Target, BarChart3, Inbox, Trophy, UserCircle2, Users, UserCog, ListChecks, History, Building2, Mail, ScrollText, X,
+  LayoutDashboard, Target, BarChart3, Inbox, Trophy, UserCircle2, Users, UserCog, ListChecks, History, Building2, Mail, ScrollText, HandCoins, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROLES, ROLE_LABELS, type Role } from "@/lib/constants";
@@ -32,6 +32,7 @@ export function navFor(role: Role, pendingCount: number): { section: string; ite
         items: [
           { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
           { href: "/pending-requests", label: "KPI Pending Request", icon: Inbox, badge: pendingCount },
+          { href: "/variable-pay", label: "Variable Pay", icon: HandCoins },
           { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
         ],
       },
@@ -64,6 +65,7 @@ export function navFor(role: Role, pendingCount: number): { section: string; ite
       items: [
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/pending-requests", label: "KPI Pending Request", icon: Inbox, badge: pendingCount },
+        { href: "/variable-pay", label: "Variable Pay", icon: HandCoins },
         { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
       ],
     },

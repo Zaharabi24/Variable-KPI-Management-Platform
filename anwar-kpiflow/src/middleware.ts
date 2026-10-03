@@ -5,7 +5,7 @@ const PUBLIC = ["/login", "/register", "/setup-password", "/forgot-password", "/
 const COOKIE = "kpiflow_session";
 
 /** Screens each role may open (Section 6.1). Pages re-check on the server; this just makes wrong-role visits redirect instantly. */
-const EMPLOYEE_ONLY_BLOCK = ["/dashboard", "/pending-requests", "/leaderboard", "/admin"];
+const EMPLOYEE_ONLY_BLOCK = ["/dashboard", "/pending-requests", "/variable-pay", "/leaderboard", "/admin"];
 const HEAD_BLOCK = ["/admin"];
 const SUPER_ADMIN_BLOCK = ["/my-kpi", "/performance"];
 const SYSTEM_ADMIN_ALLOW = ["/admin/department-heads", "/admin/employees", "/admin/kpis", "/my-kpi/", "/profile", "/api", "/dev"];
