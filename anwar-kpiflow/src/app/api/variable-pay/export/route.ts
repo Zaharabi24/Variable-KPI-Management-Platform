@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, isDeptHead } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { MONTHS } from "@/lib/constants";
-import { VP_CRITERIA, VP_STATUS, VP_TASK_COUNT, VP_TASK_MAX, VP_TOTAL_MAX, isHrReviewer, todayBd } from "@/lib/variable-pay";
-import { departmentSheet, hrSheet } from "@/lib/variable-pay-data";
+import { VP_CRITERIA, VP_STATUS, VP_STATUS_LABELS, VP_TASK_COUNT, VP_TASK_MAX, VP_TOTAL_MAX } from "@/lib/variable-pay";
+import { departmentSheet, requestList, resolveVpView } from "@/lib/variable-pay-data";
 
 /** CSV cell: quoted, and neutralised against spreadsheet formula injection. */
 const cell = (v: unknown) => {
@@ -13,45 +13,45 @@ const cell = (v: unknown) => {
 };
 const line = (cells: unknown[]) => cells.map(cell).join(",");
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "2-digit" }).replace(/ /g, "-") : "");
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
 
-/** Export the month's Variable Pay sheet in the organisation's format: the Individual table, then each KPI Score Break Down. */
+/**
+ * Export Variable Pay in the organisation's sheet layout: the Individual table, then each KPI Score Break Down.
+ * Uses the same access rules and filters as the screen (department month sheet, review list or finance list).
+ */
 export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const hr = isHrReviewer(user);
-  const head = isDeptHead(user) && !!user.departmentId;
-  if (!hr && !head) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const view = resolveVpView(user, Object.fromEntries(new URL(req.url).searchParams));
+  if (!view.mode) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { mode, year, month, filters } = view;
+  const rows = mode === "department" ? (await departmentSheet(user.departmentId!, user.fullName, year, month)).rows : await requestList(mode, filters);
 
-  const q = new URL(req.url).searchParams;
-  const today = todayBd();
-  const y = Number(q.get("year"));
-  const m = Number(q.get("month"));
-  const year = y >= 2000 && y <= 2100 ? y : today.getUTCFullYear();
-  const month = m >= 1 && m <= 12 ? m : today.getUTCMonth() + 1;
-  const mode = hr && (!head || q.get("scope") === "hr") ? "hr" : "department";
-  const rows = mode === "hr" ? await hrSheet(year, month) : (await departmentSheet(user.departmentId!, user.fullName, year, month)).rows;
-
-  const pad = Array(9).fill("");
+  const title = mode === "department" ? `Month of ${MONTHS[month - 1]},${year}` : mode === "review" ? "All Variable Pay requests" : "Approved Variable Pay — payment history";
   const out: string[] = [
-    line(["Individual", ...Array(8).fill(""), `Month of ${MONTHS[month - 1]},${year}`]),
-    line([...pad.slice(0, 8), "Score =", ...VP_CRITERIA.map((c) => c.max), VP_TOTAL_MAX]),
-    line(["SL", "ID", "Name", "DOJ", "Days", "Tenure", "Designation", "Department", "Supervisor", ...VP_CRITERIA.map((c) => c.label), "Total Score:", "Remarks", "HR Note", "Status"]),
+    line(["Individual", ...Array(8).fill(""), title]),
+    line([...Array(8).fill(""), "Score =", ...VP_CRITERIA.map((c) => c.max), VP_TOTAL_MAX]),
+    line([
+      "SL", "ID", "Name", "DOJ", "Days", "Tenure", "Designation", "Department", "Supervisor", ...VP_CRITERIA.map((c) => c.label), "Total Score:", "Remarks", "HR Note",
+      "Month", "Business Unit", "Status", "Submitted on", "Submitted by", "Decision by", "Decision on", "Decision comment", "Payment amount (BDT)", "Payment reference", "Payment confirmed by", "Payment confirmed on",
+    ]),
     ...rows.map((r, i) =>
       line([
         i + 1, r.empCode, r.name, day(r.doj), r.days, r.tenure, r.designation, r.department, r.supervisor,
         ...VP_CRITERIA.map((c) => r[c.key]), r.totalScore, r.remarks, r.hrNote,
-        r.status === VP_STATUS.NOT_STARTED ? "Not started" : r.status.charAt(0) + r.status.slice(1).toLowerCase(),
+        `${MONTHS[r.periodMonth - 1]} ${r.periodYear}`, r.businessUnit, VP_STATUS_LABELS[r.status], when(r.submittedAt), r.submittedAt ? r.evaluatorName : "",
+        r.decidedBy, when(r.decidedAt), r.decisionComment, r.paymentAmount, r.paymentReference, r.paymentConfirmedBy, when(r.paymentConfirmedAt),
       ]),
     ),
   ];
   for (const r of rows.filter((x) => x.status !== VP_STATUS.NOT_STARTED)) {
-    out.push("", line([`KPI Score Break Down — ${r.name} (${r.empCode})`]), line(["SL.", `${VP_TASK_COUNT} Major Tasks`, `Score (Out of ${VP_TASK_MAX} for Each)`, "Remarks"]));
+    out.push("", line([`KPI Score Break Down — ${r.name} (${r.empCode}) — ${MONTHS[r.periodMonth - 1]} ${r.periodYear}`]), line(["SL.", `${VP_TASK_COUNT} Major Tasks`, `Score (Out of ${VP_TASK_MAX} for Each)`, "Remarks"]));
     for (const t of r.tasks) out.push(line([t.sl, t.task, t.score, t.remarks]));
     out.push(line(["", "Total", r.kpiScore, ""]));
   }
 
-  await audit(user.id, "VARIABLE_PAY_EXPORTED", "VariablePayEvaluation", null, { year, month, mode, rows: rows.length });
-  const name = `variable-pay-${year}-${String(month).padStart(2, "0")}${mode === "hr" ? "-all-departments" : ""}.csv`;
+  await audit(user.id, "VARIABLE_PAY_EXPORTED", "VariablePayEvaluation", null, { mode, year, month, filters, rows: rows.length });
+  const name = mode === "department" ? `variable-pay-${year}-${String(month).padStart(2, "0")}.csv` : `variable-pay-${mode === "review" ? "requests" : "payments"}.csv`;
   return new NextResponse("﻿" + out.join("\r\n"), {
     headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}"`, "Cache-Control": "no-store" },
   });

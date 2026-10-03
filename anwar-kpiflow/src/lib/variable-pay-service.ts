@@ -1,14 +1,15 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { ROLES, USER_STATUS } from "./constants";
 import {
-  VP_MANUAL_CRITERIA, VP_STATUS, VP_TASK_COUNT, VP_TASK_MAX, isFuturePeriod, isHrReviewer, serviceLength, todayBd, vpTotals,
+  VP_EDITABLE, VP_MANUAL_CRITERIA, VP_STATUS, VP_TASK_COUNT, VP_TASK_MAX, isFinanceMember, isFuturePeriod, isHrReviewer, isVpApprover,
+  serviceLength, todayBd, vpTotals,
   type VpManualKey,
 } from "./variable-pay";
 
 /**
  * Variable Pay rules. Every function takes the database client explicitly so the same code runs
  * inside a server action or inside a rolled-back transaction in tests. Authorisation is enforced here,
- * not in the UI.
+ * not in the UI. Every workflow step appends a VariablePayEvent (who, what, when, comment).
  */
 type Client = PrismaClient | Prisma.TransactionClient;
 export type VpActor = { id: string; role: string; fullName: string; departmentId: string | null; department: { code: string; name: string } | null };
@@ -28,6 +29,10 @@ const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 function isHeadOf(actor: VpActor, employee: { departmentId: string | null; role: string }) {
   return actor.role === ROLES.DEPARTMENT_HEAD && !!actor.departmentId && employee.departmentId === actor.departmentId && employee.role === ROLES.EMPLOYEE;
+}
+
+function logEvent(c: Client, evaluationId: string, action: string, actorId: string, comment?: string | null) {
+  return c.variablePayEvent.create({ data: { evaluationId, action, actorId, comment: comment?.trim() || null } });
 }
 
 /* ---------- Eligibility roster ---------- */
@@ -58,7 +63,7 @@ export async function setEligibility(c: Client, actor: VpActor, input: { employe
   });
 }
 
-/* ---------- Evaluation: save draft / submit ---------- */
+/* ---------- Department Head: save draft / submit ---------- */
 
 export type VpEvaluationInput = {
   employeeId: string;
@@ -81,7 +86,13 @@ export async function saveEvaluation(c: Client, actor: VpActor, input: VpEvaluat
   const existing = await c.variablePayEvaluation.findUnique({
     where: { employeeId_periodYear_periodMonth: { employeeId: employee.id, periodYear: input.year, periodMonth: input.month } },
   });
-  if (existing?.status === VP_STATUS.SUBMITTED) throw new VpError("This evaluation is already submitted and locked. HR can return it for correction.");
+  if (existing && !VP_EDITABLE.includes(existing.status)) {
+    throw new VpError(
+      existing.status === VP_STATUS.SUBMITTED
+        ? "This request is submitted and waiting for the Super Admin. It can be changed only if it is returned."
+        : "This request is closed and can no longer be changed.",
+    );
+  }
   if (!existing && !employee.variablePayEligible) throw new VpError("This employee is not on the Variable Pay eligibility list.");
 
   const fields: Record<string, string> = {};
@@ -126,36 +137,86 @@ export async function saveEvaluation(c: Client, actor: VpActor, input: VpEvaluat
     ...manual,
     totalScore,
     remarks: remarks || null,
-    ...(submit ? { submittedAt: new Date(), returnReason: null } : {}),
+    // A (re)submission starts a fresh review: the exact time is recorded and the previous decision is cleared (it stays in the history).
+    ...(submit ? { submittedAt: new Date(), returnReason: null, decisionComment: null, decidedAt: null, decidedById: null } : {}),
   };
   const saved = existing
     ? await c.variablePayEvaluation.update({ where: { id: existing.id }, data })
     : await c.variablePayEvaluation.create({ data: { ...data, employeeId: employee.id, periodYear: input.year, periodMonth: input.month } });
   await c.variablePayTask.deleteMany({ where: { evaluationId: saved.id } });
   await c.variablePayTask.createMany({ data: tasks.map((t) => ({ evaluationId: saved.id, sl: t.sl, task: t.task, score: t.score, remarks: t.remarks || null })) });
+  if (submit) await logEvent(c, saved.id, existing?.submittedAt ? "RESUBMITTED" : "SUBMITTED", actor.id, `Total Score ${totalScore}`);
   return saved;
 }
 
-/* ---------- HR: note and return ---------- */
+/* ---------- Super Admin: approve / return / reject ---------- */
 
-async function loadForHr(c: Client, actor: VpActor, evaluationId: string) {
-  if (!isHrReviewer(actor)) throw new VpError("Only HR can do this.");
-  const ev = await c.variablePayEvaluation.findUnique({ where: { id: evaluationId } });
-  if (!ev) throw new VpError("Evaluation not found.");
-  if (ev.status !== VP_STATUS.SUBMITTED) throw new VpError("Only a submitted evaluation can be reviewed by HR.");
-  return ev;
+export type VpDecision = "approve" | "return" | "reject";
+
+export async function decideEvaluation(c: Client, actor: VpActor, input: { evaluationId: string; decision: VpDecision; comment: string }) {
+  if (!isVpApprover(actor)) throw new VpError("Only the Super Admin can approve, return or reject a Variable Pay request.");
+  const ev = await c.variablePayEvaluation.findUnique({ where: { id: input.evaluationId } });
+  if (!ev) throw new VpError("Request not found.");
+  if (ev.status !== VP_STATUS.SUBMITTED) throw new VpError("Only a submitted request can be decided. This one has already been handled.");
+
+  const comment = input.comment.trim();
+  if (comment.length > 2000) throw new VpError("Please correct the highlighted fields.", { comment: "Keep the comment under 2,000 characters." });
+  if (input.decision !== "approve" && comment.length < 5) {
+    throw new VpError("Please correct the highlighted fields.", {
+      comment: input.decision === "return" ? "Tell the Department Head what needs to be corrected." : "A reason is required to reject a request.",
+    });
+  }
+  const status = input.decision === "approve" ? VP_STATUS.APPROVED : input.decision === "return" ? VP_STATUS.RETURNED : VP_STATUS.REJECTED;
+  const updated = await c.variablePayEvaluation.update({
+    where: { id: ev.id },
+    data: { status, decidedById: actor.id, decidedAt: new Date(), decisionComment: comment || null, returnReason: input.decision === "return" ? comment : null },
+  });
+  await logEvent(c, ev.id, status, actor.id, comment);
+  return updated;
 }
+
+/* ---------- HR Note ---------- */
 
 export async function setHrNote(c: Client, actor: VpActor, input: { evaluationId: string; note: string }) {
-  const ev = await loadForHr(c, actor, input.evaluationId);
+  if (!isHrReviewer(actor)) throw new VpError("Only HR can write the HR Note.");
+  const ev = await c.variablePayEvaluation.findUnique({ where: { id: input.evaluationId } });
+  if (!ev) throw new VpError("Request not found.");
+  if (ev.status !== VP_STATUS.SUBMITTED && ev.status !== VP_STATUS.APPROVED) throw new VpError("The HR Note can be written only while a request is submitted or approved.");
   const note = input.note.trim();
   if (note.length > 2000) throw new VpError("Please correct the highlighted fields.", { hrNote: "Keep the HR note under 2,000 characters." });
-  return c.variablePayEvaluation.update({ where: { id: ev.id }, data: { hrNote: note || null, hrNoteById: actor.id, hrNoteAt: new Date() } });
+  const updated = await c.variablePayEvaluation.update({ where: { id: ev.id }, data: { hrNote: note || null, hrNoteById: actor.id, hrNoteAt: new Date() } });
+  await logEvent(c, ev.id, "HR_NOTE", actor.id, note);
+  return updated;
 }
 
-export async function returnEvaluation(c: Client, actor: VpActor, input: { evaluationId: string; reason: string }) {
-  const ev = await loadForHr(c, actor, input.evaluationId);
-  const reason = input.reason.trim();
-  if (reason.length < 5) throw new VpError("Please correct the highlighted fields.", { reason: "A reason is required when returning an evaluation." });
-  return c.variablePayEvaluation.update({ where: { id: ev.id }, data: { status: VP_STATUS.RETURNED, returnReason: reason.slice(0, 2000) } });
+/* ---------- Finance: confirm the payment amount ---------- */
+
+export async function confirmPayment(c: Client, actor: VpActor, input: { evaluationId: string; amount: unknown; reference: string; note: string }) {
+  if (!isFinanceMember(actor)) throw new VpError("Only the Finance Department can confirm a Variable Pay payment.");
+  const ev = await c.variablePayEvaluation.findUnique({ where: { id: input.evaluationId } });
+  if (!ev) throw new VpError("Request not found.");
+  if (ev.status === VP_STATUS.PAYMENT_CONFIRMED) throw new VpError("Payment is already confirmed for this request.");
+  if (ev.status !== VP_STATUS.APPROVED) throw new VpError("Payment can be confirmed only for a request approved by the Super Admin.");
+  // Segregation of duties: nobody confirms payment on a request they evaluated, or on their own Variable Pay.
+  if (ev.evaluatorId === actor.id) throw new VpError("You evaluated this request, so another Finance member must confirm its payment.");
+  if (ev.employeeId === actor.id) throw new VpError("You cannot confirm payment of your own Variable Pay.");
+
+  const fields: Record<string, string> = {};
+  const amount = num(input.amount);
+  if (amount === null) fields.amount = "Enter the payment amount.";
+  else if (Number.isNaN(amount) || amount <= 0) fields.amount = "The payment amount must be greater than zero.";
+  else if (amount > 100_000_000) fields.amount = "The payment amount is too large.";
+  const reference = input.reference.trim();
+  const note = input.note.trim();
+  if (reference.length > 120) fields.reference = "Keep the reference under 120 characters.";
+  if (note.length > 1000) fields.note = "Keep the note under 1,000 characters.";
+  if (Object.keys(fields).length) throw new VpError("Please correct the highlighted fields.", fields);
+
+  const paid = round2(amount as number);
+  const updated = await c.variablePayEvaluation.update({
+    where: { id: ev.id },
+    data: { status: VP_STATUS.PAYMENT_CONFIRMED, paymentAmount: paid, paymentReference: reference || null, paymentNote: note || null, paymentConfirmedById: actor.id, paymentConfirmedAt: new Date() },
+  });
+  await logEvent(c, ev.id, VP_STATUS.PAYMENT_CONFIRMED, actor.id, `Amount ${paid.toLocaleString("en-US", { minimumFractionDigits: 2 })} BDT${reference ? ` · Ref ${reference}` : ""}${note ? ` · ${note}` : ""}`);
+  return updated;
 }

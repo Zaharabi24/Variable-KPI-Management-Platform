@@ -19,14 +19,77 @@ export type VpManualKey = Exclude<VpCriterionKey, "kpiScore">;
 export const VP_MANUAL_CRITERIA = VP_CRITERIA.filter((c) => !c.derived) as unknown as { key: VpManualKey; label: string; max: number }[];
 export const VP_TOTAL_MAX = VP_CRITERIA.reduce((a, c) => a + c.max, 0); // 100
 
-export const VP_STATUS = { NOT_STARTED: "NOT_STARTED", DRAFT: "DRAFT", SUBMITTED: "SUBMITTED", RETURNED: "RETURNED" } as const;
+/**
+ * Workflow: DRAFT -> SUBMITTED -> APPROVED -> PAYMENT_CONFIRMED
+ *                       |-> RETURNED (feedback) -> SUBMITTED again
+ *                       |-> REJECTED (final)
+ * NOT_STARTED is a display state for an eligible employee with no record yet.
+ */
+export const VP_STATUS = {
+  NOT_STARTED: "NOT_STARTED",
+  DRAFT: "DRAFT",
+  SUBMITTED: "SUBMITTED",
+  RETURNED: "RETURNED",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+  PAYMENT_CONFIRMED: "PAYMENT_CONFIRMED",
+} as const;
 export type VpStatus = (typeof VP_STATUS)[keyof typeof VP_STATUS];
 
-export const HR_DEPARTMENT_CODE = "HR";
+export const VP_STATUS_LABELS: Record<VpStatus, string> = {
+  NOT_STARTED: "Not started",
+  DRAFT: "Draft",
+  SUBMITTED: "Submitted",
+  RETURNED: "Returned",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  PAYMENT_CONFIRMED: "Payment confirmed",
+};
 
-/** HR reviewers: the Human Resources Department Head and the Super Admin. They read every department's submissions and own the HR Note. */
-export function isHrReviewer(u: { role: string; department?: { code: string } | null }): boolean {
+/** Statuses the Department Head may still edit. Everything else is locked. */
+export const VP_EDITABLE: string[] = [VP_STATUS.DRAFT, VP_STATUS.RETURNED];
+/** What the Super Admin and HR see (drafts stay private to the Department Head). */
+export const VP_REVIEW_STATUSES: VpStatus[] = [VP_STATUS.SUBMITTED, VP_STATUS.RETURNED, VP_STATUS.APPROVED, VP_STATUS.REJECTED, VP_STATUS.PAYMENT_CONFIRMED];
+/** What Finance sees: approved requests and their payment history. */
+export const VP_FINANCE_STATUSES: VpStatus[] = [VP_STATUS.APPROVED, VP_STATUS.PAYMENT_CONFIRMED];
+
+export const VP_EVENT_LABELS: Record<string, string> = {
+  SUBMITTED: "Submitted for approval",
+  RESUBMITTED: "Resubmitted after correction",
+  APPROVED: "Approved",
+  RETURNED: "Returned for correction",
+  REJECTED: "Rejected",
+  HR_NOTE: "HR note updated",
+  PAYMENT_CONFIRMED: "Payment confirmed",
+};
+
+export const HR_DEPARTMENT_CODE = "HR";
+export const FINANCE_DEPARTMENT_CODE = "FIN";
+
+type RoleUser = { role: string; department?: { code: string } | null };
+
+/** The Super Admin approves, returns or rejects submitted requests. */
+export function isVpApprover(u: RoleUser): boolean {
+  return u.role === "SUPER_ADMIN";
+}
+/** HR reviewers read every department's requests and own the HR Note: the Human Resources Department Head and the Super Admin. */
+export function isHrReviewer(u: RoleUser): boolean {
   return u.role === "SUPER_ADMIN" || (u.role === "DEPARTMENT_HEAD" && u.department?.code === HR_DEPARTMENT_CODE);
+}
+/** Finance: members of the Finance & Accounts department (its head and its employees) see approved requests and confirm payment. */
+export function isFinanceMember(u: RoleUser): boolean {
+  return (u.role === "DEPARTMENT_HEAD" || u.role === "EMPLOYEE") && u.department?.code === FINANCE_DEPARTMENT_CODE;
+}
+
+export type VpMode = "department" | "review" | "finance";
+
+/** Which Variable Pay views a user may open, in default order. Empty means no access. */
+export function vpScopes(u: RoleUser & { departmentId?: string | null }): VpMode[] {
+  const scopes: VpMode[] = [];
+  if (u.role === "DEPARTMENT_HEAD" && u.departmentId) scopes.push("department");
+  if (isHrReviewer(u)) scopes.push("review");
+  if (isFinanceMember(u)) scopes.push("finance");
+  return scopes;
 }
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -70,12 +133,17 @@ export function isFuturePeriod(year: number, month: number, now = new Date()): b
 }
 
 export type VpTaskRow = { sl: number; task: string; score: number | null; remarks: string };
+export type VpEventRow = { id: string; action: string; actor: string; comment: string | null; at: string };
 
-/** One line of the "Individual" sheet, as the screens consume it. */
+/** One Variable Pay request: a line of the "Individual" sheet plus its workflow state. */
 export type VpRow = {
+  key: string;
   employeeId: string;
   evaluationId: string | null;
   status: VpStatus;
+  periodYear: number;
+  periodMonth: number;
+  businessUnit: string | null;
   empCode: string;
   name: string;
   doj: string | null;
@@ -96,7 +164,16 @@ export type VpRow = {
   returnReason: string | null;
   submittedAt: string | null;
   evaluatorName: string | null;
+  decisionComment: string | null;
+  decidedAt: string | null;
+  decidedBy: string | null;
+  paymentAmount: number | null;
+  paymentReference: string | null;
+  paymentNote: string | null;
+  paymentConfirmedAt: string | null;
+  paymentConfirmedBy: string | null;
   tasks: VpTaskRow[];
+  events: VpEventRow[];
 };
 
 /** One line of the eligibility roster a Department Head manages. */
@@ -109,3 +186,6 @@ export type VpRosterRow = {
   doj: string; // yyyy-mm-dd or ""
   supervisor: string;
 };
+
+export type VpFilters = { dept: string; bu: string; status: string; from: string; to: string };
+export type VpOption = { id: string; name: string };

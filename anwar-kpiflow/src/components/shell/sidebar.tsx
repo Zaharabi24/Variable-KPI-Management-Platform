@@ -12,7 +12,10 @@ import { Logo } from "./logo";
 type Item = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; badge?: number };
 
 /** Section 8.2 — sidebar navigation by role. */
-export function navFor(role: Role, pendingCount: number): { section: string; items: Item[] }[] {
+export type VpNav = { show: boolean; badge: number };
+
+export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: false, badge: 0 }): { section: string; items: Item[] }[] {
+  const variablePay: Item[] = vp.show ? [{ href: "/variable-pay", label: "Variable Pay", icon: HandCoins, badge: vp.badge }] : [];
   if (role === ROLES.EMPLOYEE) {
     return [
       {
@@ -21,6 +24,7 @@ export function navFor(role: Role, pendingCount: number): { section: string; ite
           { href: "/profile", label: "Profile", icon: UserCircle2 },
           { href: "/my-kpi", label: "My KPI", icon: Target },
           { href: "/performance", label: "Performance Summary", icon: BarChart3 },
+          ...variablePay,
         ],
       },
     ];
@@ -32,7 +36,7 @@ export function navFor(role: Role, pendingCount: number): { section: string; ite
         items: [
           { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
           { href: "/pending-requests", label: "KPI Pending Request", icon: Inbox, badge: pendingCount },
-          { href: "/variable-pay", label: "Variable Pay", icon: HandCoins },
+          ...variablePay,
           { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
         ],
       },
@@ -65,7 +69,7 @@ export function navFor(role: Role, pendingCount: number): { section: string; ite
       items: [
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/pending-requests", label: "KPI Pending Request", icon: Inbox, badge: pendingCount },
-        { href: "/variable-pay", label: "Variable Pay", icon: HandCoins },
+        ...variablePay,
         { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
       ],
     },
@@ -88,16 +92,18 @@ export function navFor(role: Role, pendingCount: number): { section: string; ite
 export function Sidebar({
   user,
   pendingCount,
+  vp,
   open,
   onClose,
 }: {
   user: { fullName: string; role: Role; department: { name: string } | null; designation: string | null };
   pendingCount: number;
+  vp?: VpNav;
   open: boolean;
   onClose: () => void;
 }) {
   const pathname = usePathname();
-  const groups = navFor(user.role, pendingCount);
+  const groups = navFor(user.role, pendingCount, vp);
   const scope = user.department ? user.department.name : user.role === ROLES.EMPLOYEE ? "" : "All departments";
 
   return (

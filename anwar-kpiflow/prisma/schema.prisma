@@ -59,6 +59,9 @@ model User {
   vpEvaluations       VariablePayEvaluation[] @relation("VpEmployee")
   vpEvaluated         VariablePayEvaluation[] @relation("VpEvaluator")
   vpHrNotes           VariablePayEvaluation[] @relation("VpHrNoteBy")
+  vpDecided           VariablePayEvaluation[] @relation("VpDecidedBy")
+  vpPaymentsConfirmed VariablePayEvaluation[] @relation("VpPaymentBy")
+  vpEvents            VariablePayEvent[]
 }
 
 model AccountToken {
@@ -187,7 +190,7 @@ model VariablePayEvaluation {
   evaluator   User   @relation("VpEvaluator", fields: [evaluatorId], references: [id])
   periodYear  Int
   periodMonth Int
-  status      String @default("DRAFT") // DRAFT | SUBMITTED | RETURNED
+  status      String @default("DRAFT") // DRAFT | SUBMITTED | RETURNED | APPROVED | REJECTED | PAYMENT_CONFIRMED
 
   // Snapshot of the "Individual" columns
   empCode        String // ID
@@ -214,14 +217,31 @@ model VariablePayEvaluation {
   hrNoteBy     User?     @relation("VpHrNoteBy", fields: [hrNoteById], references: [id])
   hrNoteAt     DateTime?
   returnReason String?   @db.Text
-  submittedAt  DateTime?
+  submittedAt  DateTime? // exact time of the latest submission
+
+  // Super Admin decision (approve / return / reject)
+  decidedById     String?
+  decidedBy       User?     @relation("VpDecidedBy", fields: [decidedById], references: [id])
+  decidedAt       DateTime?
+  decisionComment String?   @db.Text
+
+  // Finance: confirmed payment
+  paymentAmount        Float?
+  paymentReference     String?
+  paymentNote          String?   @db.Text
+  paymentConfirmedById String?
+  paymentConfirmedBy   User?     @relation("VpPaymentBy", fields: [paymentConfirmedById], references: [id])
+  paymentConfirmedAt   DateTime?
+
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tasks VariablePayTask[]
+  tasks  VariablePayTask[]
+  events VariablePayEvent[]
 
   @@unique([employeeId, periodYear, periodMonth])
   @@index([periodYear, periodMonth, departmentId])
+  @@index([status, submittedAt])
 }
 
 /// "KPI Score Break Down": 5 Major Tasks, each scored out of 10.
@@ -235,4 +255,18 @@ model VariablePayTask {
   remarks      String?               @db.Text // Remarks
 
   @@unique([evaluationId, sl])
+}
+
+/// Append-only workflow history of a Variable Pay request: who did what, when, with which comment.
+model VariablePayEvent {
+  id           String                @id @default(cuid())
+  evaluationId String
+  evaluation   VariablePayEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  action       String // SUBMITTED | RESUBMITTED | APPROVED | RETURNED | REJECTED | HR_NOTE | PAYMENT_CONFIRMED
+  actorId      String
+  actor        User                  @relation(fields: [actorId], references: [id])
+  comment      String?               @db.Text
+  createdAt    DateTime              @default(now())
+
+  @@index([evaluationId, createdAt])
 }
