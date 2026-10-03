@@ -6,7 +6,7 @@ import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
 import { appUrl, sendEmail } from "@/lib/email";
 import { MONTHS, ROLES, USER_STATUS } from "@/lib/constants";
-import { FINANCE_DEPARTMENT_CODE, VP_MANUAL_CRITERIA, VP_TASK_COUNT, type VpManualKey } from "@/lib/variable-pay";
+import { VP_MANUAL_CRITERIA, VP_TASK_COUNT, type VpManualKey } from "@/lib/variable-pay";
 import { VpError, confirmPayment, decideEvaluation, saveEvaluation, setEligibility, setHrNote, type VpDecision } from "@/lib/variable-pay-service";
 import { invalid, type ActionState } from "./form";
 
@@ -36,7 +36,7 @@ async function notify(to: { email: string }[], subject: string, body: string, sc
   }
 }
 const superAdmins = () => db.user.findMany({ where: { role: ROLES.SUPER_ADMIN, status: USER_STATUS.ACTIVE }, select: { email: true } });
-const financeMembers = () => db.user.findMany({ where: { status: USER_STATUS.ACTIVE, role: { in: [ROLES.DEPARTMENT_HEAD, ROLES.EMPLOYEE] }, department: { code: FINANCE_DEPARTMENT_CODE } }, select: { email: true } });
+const financeAdmins = () => db.user.findMany({ where: { status: USER_STATUS.ACTIVE, role: ROLES.FINANCE_ADMIN }, select: { email: true } });
 const evaluatorOf = (ev: Ev) => db.user.findMany({ where: { id: ev.evaluatorId }, select: { email: true } });
 
 /** Department Head: add or remove an employee from the Variable Pay eligibility list, with DOJ and Supervisor. */
@@ -108,11 +108,11 @@ export async function decideEvaluationAction(_prev: ActionState, formData: FormD
     await notify(await evaluatorOf(ev), `Variable Pay request ${past} — ${ev.empName} (${periodOf(ev)})`,
       `Your Variable Pay request for ${ev.empName} (${ev.empCode}), ${periodOf(ev)}, was ${past} by the Super Admin.${feedback}${decision === "return" ? " Please correct it and submit again." : ""}`, "department");
     if (decision === "approve") {
-      await notify(await financeMembers(), `Variable Pay approved for payment — ${ev.empName} (${periodOf(ev)})`,
+      await notify(await financeAdmins(), `Variable Pay approved for payment — ${ev.empName} (${periodOf(ev)})`,
         `The Variable Pay request for ${ev.empName} (${ev.empCode}), ${periodOf(ev)}, was approved with a Total Score of ${ev.totalScore}. Please confirm the payment amount.`, "finance");
     }
     refresh();
-    return { ok: true, message: decision === "approve" ? `Approved ${ev.empName}'s request. It is now with Finance.` : decision === "return" ? `Returned ${ev.empName}'s request to the Department Head with your feedback.` : `Rejected ${ev.empName}'s request.` };
+    return { ok: true, message: decision === "approve" ? `Approved ${ev.empName}'s request. It is now with the Finance Admin for payment.` : decision === "return" ? `Returned ${ev.empName}'s request to the Department Head with your feedback.` : `Rejected ${ev.empName}'s request.` };
   } catch (e) {
     return fail(formData, e);
   }
@@ -131,7 +131,7 @@ export async function hrNoteAction(_prev: ActionState, formData: FormData): Prom
   }
 }
 
-/** Finance: confirm the payment amount of an approved request. */
+/** Finance Admin: confirm the payment amount of an approved request. */
 export async function confirmPaymentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   try {
@@ -142,7 +142,7 @@ export async function confirmPaymentAction(_prev: ActionState, formData: FormDat
     await audit(user.id, "VARIABLE_PAY_PAYMENT_CONFIRMED", "VariablePayEvaluation", ev.id, { employee: ev.empCode, amount: ev.paymentAmount, reference: ev.paymentReference });
     const amount = (ev.paymentAmount ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 });
     await notify([...(await evaluatorOf(ev)), ...(await superAdmins())], `Variable Pay payment confirmed — ${ev.empName} (${periodOf(ev)})`,
-      `Finance (${user.fullName}) confirmed a Variable Pay payment of BDT ${amount} for ${ev.empName} (${ev.empCode}), ${periodOf(ev)}.`, "review");
+      `The Finance Admin (${user.fullName}) confirmed a Variable Pay payment of BDT ${amount} for ${ev.empName} (${ev.empCode}), ${periodOf(ev)}.`, "review");
     refresh();
     return { ok: true, message: `Payment of BDT ${amount} confirmed for ${ev.empName}.` };
   } catch (e) {

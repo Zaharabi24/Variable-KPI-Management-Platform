@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireUser, homeFor } from "@/lib/auth";
 import { MONTHS } from "@/lib/constants";
-import { isFinanceMember, isFuturePeriod, isHrReviewer, isVpApprover } from "@/lib/variable-pay";
+import { isFuturePeriod, isHrReviewer, isVpApprover, isVpFinance } from "@/lib/variable-pay";
 import { departmentSheet, filterOptions, requestList, resolveVpView } from "@/lib/variable-pay-data";
 import { VariablePayBoard } from "./variable-pay-board";
 
@@ -38,7 +38,7 @@ export default async function VariablePayPage({ searchParams }: { searchParams: 
       caps={{
         decide: mode === "review" && isVpApprover(user),
         hrNote: mode === "review" && isHrReviewer(user),
-        pay: mode === "finance" && isFinanceMember(user),
+        pay: mode === "finance" && isVpFinance(user),
       }}
       viewerId={user.id}
     />

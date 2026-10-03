@@ -4,6 +4,7 @@ export const ROLES = {
   SUPER_ADMIN: "SUPER_ADMIN",
   SYSTEM_ADMIN: "SYSTEM_ADMIN",
   DEPARTMENT_HEAD: "DEPARTMENT_HEAD",
+  FINANCE_ADMIN: "FINANCE_ADMIN",
   EMPLOYEE: "EMPLOYEE",
 } as const;
 export type Role = (typeof ROLES)[keyof typeof ROLES];
@@ -12,6 +13,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: "Super Admin",
   SYSTEM_ADMIN: "System Admin",
   DEPARTMENT_HEAD: "Department Head",
+  FINANCE_ADMIN: "Finance Admin",
   EMPLOYEE: "Employee",
 };
 

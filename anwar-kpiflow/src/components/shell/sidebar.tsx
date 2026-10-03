@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Target, BarChart3, Inbox, Trophy, UserCircle2, Users, UserCog, ListChecks, History, Building2, Mail, ScrollText, HandCoins, X,
+  LayoutDashboard, Target, BarChart3, Inbox, Trophy, UserCircle2, Users, UserCog, ListChecks, History, Building2, Mail, ScrollText, HandCoins, Landmark, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROLES, ROLE_LABELS, type Role } from "@/lib/constants";
@@ -50,6 +50,12 @@ export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: fal
       },
     ];
   }
+  if (role === ROLES.FINANCE_ADMIN) {
+    return [
+      { section: "Finance", items: variablePay },
+      { section: "Account", items: [{ href: "/profile", label: "Profile", icon: UserCircle2 }] },
+    ];
+  }
   if (role === ROLES.SYSTEM_ADMIN) {
     return [
       {
@@ -77,6 +83,7 @@ export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: fal
       section: "Administration",
       items: [
         { href: "/admin/department-heads", label: "Department Head", icon: UserCog },
+        { href: "/admin/finance-admins", label: "Finance Admin", icon: Landmark },
         { href: "/admin/employees", label: "Employees", icon: Users },
         { href: "/admin/kpis", label: "All KPIs and Approvals", icon: ListChecks },
         { href: "/admin/versions", label: "Version Control and History", icon: History },
@@ -104,7 +111,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const groups = navFor(user.role, pendingCount, vp);
-  const scope = user.department ? user.department.name : user.role === ROLES.EMPLOYEE ? "" : "All departments";
+  const scope = user.department ? user.department.name : user.role === ROLES.EMPLOYEE || user.role === ROLES.FINANCE_ADMIN ? "" : "All departments";
 
   return (
     <>

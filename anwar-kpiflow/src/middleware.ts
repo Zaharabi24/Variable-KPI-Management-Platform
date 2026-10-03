@@ -5,14 +5,17 @@ const PUBLIC = ["/login", "/register", "/setup-password", "/forgot-password", "/
 const COOKIE = "kpiflow_session";
 
 /** Screens each role may open (Section 6.1). Pages re-check on the server; this just makes wrong-role visits redirect instantly. */
-const EMPLOYEE_ONLY_BLOCK = ["/dashboard", "/pending-requests", "/leaderboard", "/admin"];
+const EMPLOYEE_ONLY_BLOCK = ["/dashboard", "/pending-requests", "/variable-pay", "/leaderboard", "/admin"];
 const HEAD_BLOCK = ["/admin"];
 const SUPER_ADMIN_BLOCK = ["/my-kpi", "/performance"];
+/** Finance Admin is allow-listed: the Variable Pay payment workspace and their own profile, nothing else. */
+const FINANCE_ADMIN_ALLOW = ["/variable-pay", "/profile", "/api/variable-pay"];
 const SYSTEM_ADMIN_ALLOW = ["/admin/department-heads", "/admin/employees", "/admin/kpis", "/my-kpi/", "/profile", "/api", "/dev"];
 
 function homeFor(role: string) {
   if (role === "EMPLOYEE") return "/my-kpi";
   if (role === "SYSTEM_ADMIN") return "/admin/employees";
+  if (role === "FINANCE_ADMIN") return "/variable-pay";
   return "/dashboard";
 }
 
@@ -44,7 +47,10 @@ export async function middleware(req: NextRequest) {
     (role === "EMPLOYEE" && EMPLOYEE_ONLY_BLOCK.some((p) => pathname.startsWith(p))) ||
     (role === "DEPARTMENT_HEAD" && HEAD_BLOCK.some((p) => pathname.startsWith(p))) ||
     (role === "SUPER_ADMIN" && SUPER_ADMIN_BLOCK.some((p) => pathname === p)) ||
-    (role === "SYSTEM_ADMIN" && pathname !== "/" && !SYSTEM_ADMIN_ALLOW.some((p) => pathname.startsWith(p)));
+    (role === "SYSTEM_ADMIN" && pathname !== "/" && !SYSTEM_ADMIN_ALLOW.some((p) => pathname.startsWith(p))) ||
+    (role === "FINANCE_ADMIN" && pathname !== "/" && !FINANCE_ADMIN_ALLOW.some((p) => pathname.startsWith(p)));
+  // A Finance Admin is refused other APIs outright (evidence files, KPI reports); other roles keep the page-level checks.
+  if (blocked && role === "FINANCE_ADMIN" && pathname.startsWith("/api")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (blocked && !pathname.startsWith("/api")) {
     const url = req.nextUrl.clone();
     url.pathname = homeFor(role);

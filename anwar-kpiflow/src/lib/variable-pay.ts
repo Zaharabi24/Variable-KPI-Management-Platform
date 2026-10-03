@@ -50,7 +50,7 @@ export const VP_STATUS_LABELS: Record<VpStatus, string> = {
 export const VP_EDITABLE: string[] = [VP_STATUS.DRAFT, VP_STATUS.RETURNED];
 /** What the Super Admin and HR see (drafts stay private to the Department Head). */
 export const VP_REVIEW_STATUSES: VpStatus[] = [VP_STATUS.SUBMITTED, VP_STATUS.RETURNED, VP_STATUS.APPROVED, VP_STATUS.REJECTED, VP_STATUS.PAYMENT_CONFIRMED];
-/** What Finance sees: approved requests and their payment history. */
+/** What the Finance Admin sees: approved requests and their payment history. */
 export const VP_FINANCE_STATUSES: VpStatus[] = [VP_STATUS.APPROVED, VP_STATUS.PAYMENT_CONFIRMED];
 
 export const VP_EVENT_LABELS: Record<string, string> = {
@@ -64,7 +64,6 @@ export const VP_EVENT_LABELS: Record<string, string> = {
 };
 
 export const HR_DEPARTMENT_CODE = "HR";
-export const FINANCE_DEPARTMENT_CODE = "FIN";
 
 type RoleUser = { role: string; department?: { code: string } | null };
 
@@ -76,9 +75,9 @@ export function isVpApprover(u: RoleUser): boolean {
 export function isHrReviewer(u: RoleUser): boolean {
   return u.role === "SUPER_ADMIN" || (u.role === "DEPARTMENT_HEAD" && u.department?.code === HR_DEPARTMENT_CODE);
 }
-/** Finance: members of the Finance & Accounts department (its head and its employees) see approved requests and confirm payment. */
-export function isFinanceMember(u: RoleUser): boolean {
-  return (u.role === "DEPARTMENT_HEAD" || u.role === "EMPLOYEE") && u.department?.code === FINANCE_DEPARTMENT_CODE;
+/** Finance Admin: the dedicated role that receives approved requests and confirms the payment amount. */
+export function isVpFinance(u: RoleUser): boolean {
+  return u.role === "FINANCE_ADMIN";
 }
 
 export type VpMode = "department" | "review" | "finance";
@@ -88,7 +87,7 @@ export function vpScopes(u: RoleUser & { departmentId?: string | null }): VpMode
   const scopes: VpMode[] = [];
   if (u.role === "DEPARTMENT_HEAD" && u.departmentId) scopes.push("department");
   if (isHrReviewer(u)) scopes.push("review");
-  if (isFinanceMember(u)) scopes.push("finance");
+  if (isVpFinance(u)) scopes.push("finance");
   return scopes;
 }
 

@@ -1,7 +1,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { ROLES, USER_STATUS } from "./constants";
 import {
-  VP_EDITABLE, VP_MANUAL_CRITERIA, VP_STATUS, VP_TASK_COUNT, VP_TASK_MAX, isFinanceMember, isFuturePeriod, isHrReviewer, isVpApprover,
+  VP_EDITABLE, VP_MANUAL_CRITERIA, VP_STATUS, VP_TASK_COUNT, VP_TASK_MAX, isFuturePeriod, isHrReviewer, isVpApprover, isVpFinance,
   serviceLength, todayBd, vpTotals,
   type VpManualKey,
 } from "./variable-pay";
@@ -192,14 +192,13 @@ export async function setHrNote(c: Client, actor: VpActor, input: { evaluationId
 /* ---------- Finance: confirm the payment amount ---------- */
 
 export async function confirmPayment(c: Client, actor: VpActor, input: { evaluationId: string; amount: unknown; reference: string; note: string }) {
-  if (!isFinanceMember(actor)) throw new VpError("Only the Finance Department can confirm a Variable Pay payment.");
+  if (!isVpFinance(actor)) throw new VpError("Only a Finance Admin can confirm a Variable Pay payment.");
   const ev = await c.variablePayEvaluation.findUnique({ where: { id: input.evaluationId } });
   if (!ev) throw new VpError("Request not found.");
   if (ev.status === VP_STATUS.PAYMENT_CONFIRMED) throw new VpError("Payment is already confirmed for this request.");
   if (ev.status !== VP_STATUS.APPROVED) throw new VpError("Payment can be confirmed only for a request approved by the Super Admin.");
-  // Segregation of duties: nobody confirms payment on a request they evaluated, or on their own Variable Pay.
-  if (ev.evaluatorId === actor.id) throw new VpError("You evaluated this request, so another Finance member must confirm its payment.");
-  if (ev.employeeId === actor.id) throw new VpError("You cannot confirm payment of your own Variable Pay.");
+  // Segregation of duties: the people who prepared or approved a request never confirm its payment.
+  if (ev.evaluatorId === actor.id || ev.decidedById === actor.id || ev.employeeId === actor.id) throw new VpError("You prepared, approved or are the subject of this request, so another Finance Admin must confirm its payment.");
 
   const fields: Record<string, string> = {};
   const amount = num(input.amount);

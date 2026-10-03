@@ -20,6 +20,7 @@ const TITLES: [string, string][] = [
   ["/profile", "Profile"],
   ["/admin/department-heads", "Department Head"],
   ["/admin/employees", "Employees"],
+  ["/admin/finance-admins", "Finance Admin"],
   ["/admin/kpis", "All KPIs"],
   ["/admin/versions", "Version Control and History"],
   ["/admin/organisation", "Units and Departments"],

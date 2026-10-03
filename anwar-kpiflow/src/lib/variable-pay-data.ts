@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "./db";
 import { ROLES, USER_STATUS } from "./constants";
 import {
-  VP_EDITABLE, VP_FINANCE_STATUSES, VP_REVIEW_STATUSES, VP_STATUS, VP_TASK_COUNT, isFinanceMember, isVpApprover, serviceLength, todayBd, vpScopes,
+  VP_EDITABLE, VP_FINANCE_STATUSES, VP_REVIEW_STATUSES, VP_STATUS, VP_TASK_COUNT, isVpApprover, isVpFinance, serviceLength, todayBd, vpScopes,
   type VpFilters, type VpMode, type VpOption, type VpRosterRow, type VpRow, type VpStatus, type VpTaskRow,
 } from "./variable-pay";
 
@@ -142,7 +142,7 @@ export async function departmentSheet(departmentId: string, headName: string, ye
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * Request list for the Super Admin / HR ("review") and for Finance ("finance").
+ * Request list for the Super Admin / HR ("review") and for the Finance Admin ("finance").
  * Default is every request across all periods; filters narrow by Department, Business Unit, status and submission date (Bangladesh time).
  * Requests waiting for the viewer's action come first, then the most recent submissions.
  */
@@ -200,7 +200,7 @@ export async function variablePayNav(user: ViewUser): Promise<{ show: boolean; b
   const counts = await Promise.all([
     isVpApprover(user) ? db.variablePayEvaluation.count({ where: { status: VP_STATUS.SUBMITTED } }) : 0,
     scopes.includes("department") ? db.variablePayEvaluation.count({ where: { status: VP_STATUS.RETURNED, departmentId: user.departmentId } }) : 0,
-    isFinanceMember(user) ? db.variablePayEvaluation.count({ where: { status: VP_STATUS.APPROVED } }) : 0,
+    isVpFinance(user) ? db.variablePayEvaluation.count({ where: { status: VP_STATUS.APPROVED } }) : 0,
   ]);
   return { show: true, badge: counts.reduce((a, b) => a + b, 0) };
 }

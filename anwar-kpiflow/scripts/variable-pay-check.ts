@@ -47,12 +47,13 @@ async function main() {
   const otherHead = heads.find((h) => h.departmentId !== head!.departmentId);
   const hrHead = heads.find((h) => h.department?.code === "HR");
   const admin = await db.user.findFirst({ where: { role: "SUPER_ADMIN", status: "ACTIVE" }, include: { department: true } });
-  const finance = await db.user.findFirst({ where: { status: "ACTIVE", role: { in: ["EMPLOYEE", "DEPARTMENT_HEAD"] }, department: { code: "FIN" } }, include: { department: true } });
+  const financeEmployee = await db.user.findFirst({ where: { status: "ACTIVE", role: "EMPLOYEE", department: { code: "FIN" } }, include: { department: true } });
   if (!admin) throw new Error("Need an active Super Admin to run this check.");
 
   check("Access: Department Head gets the department view", vpScopes(head)[0] === "department");
   check("Access: Super Admin gets the review view only", JSON.stringify(vpScopes(admin)) === '["review"]', vpScopes(admin));
-  if (finance) check("Access: Finance member gets the finance view", vpScopes(finance).includes("finance"), vpScopes(finance));
+  check("Access: Finance Admin gets the payments view only", JSON.stringify(vpScopes({ role: "FINANCE_ADMIN", departmentId: null, department: null })) === '["finance"]');
+  if (financeEmployee) check("Access: a Finance department employee has no Variable Pay access", vpScopes(financeEmployee).length === 0, vpScopes(financeEmployee));
   check("Access: an ordinary employee has no Variable Pay access", vpScopes({ role: "EMPLOYEE", departmentId: "x", department: { code: "GA" } }).length === 0);
   check("Access: System Admin has no Variable Pay access", vpScopes({ role: "SYSTEM_ADMIN", departmentId: null, department: null }).length === 0);
 
@@ -76,6 +77,11 @@ async function main() {
     await db.$transaction(
       async (tx) => {
         await tx.user.update({ where: { id: employee!.id }, data: { variablePayEligible: false, dateOfJoining: null, supervisorName: null } });
+        // A temporary Finance Admin, created inside the transaction and rolled back with it.
+        const finance = await tx.user.create({
+          data: { fullName: "Check Finance Admin", email: "vp-check-finance@anwargroup.net", employeeId: "VP-CHECK-FIN", role: "FINANCE_ADMIN", status: "ACTIVE" },
+          include: { department: true },
+        });
 
         /* Eligibility */
         await rejects("Not on the eligibility list -> cannot be evaluated", () => saveEvaluation(tx, head!, input(), "draft"));
@@ -109,9 +115,10 @@ async function main() {
         /* Decision authority */
         await rejects("Department Head cannot approve their own request", () => decideEvaluation(tx, head!, { evaluationId: submitted.id, decision: "approve", comment: "" }));
         if (hrHead) await rejects("HR Department Head cannot approve", () => decideEvaluation(tx, hrHead, { evaluationId: submitted.id, decision: "approve", comment: "" }));
-        if (finance) {
-          await rejects("Finance cannot approve", () => decideEvaluation(tx, finance, { evaluationId: submitted.id, decision: "approve", comment: "" }));
-          await rejects("Finance cannot pay before approval", () => confirmPayment(tx, finance, { evaluationId: submitted.id, amount: "5000", reference: "", note: "" }));
+        if (financeEmployee) await rejects("A Finance department employee cannot confirm payment", () => confirmPayment(tx, financeEmployee, { evaluationId: submitted.id, amount: "5000", reference: "", note: "" }));
+        {
+          await rejects("Finance Admin cannot approve", () => decideEvaluation(tx, finance, { evaluationId: submitted.id, decision: "approve", comment: "" }));
+          await rejects("Finance Admin cannot pay before approval", () => confirmPayment(tx, finance, { evaluationId: submitted.id, amount: "5000", reference: "", note: "" }));
         }
         await rejects("Return without feedback is rejected", () => decideEvaluation(tx, admin, { evaluationId: submitted.id, decision: "return", comment: " " }), "comment");
         await rejects("Reject without a reason is rejected", () => decideEvaluation(tx, admin, { evaluationId: submitted.id, decision: "reject", comment: "" }), "comment");
@@ -137,17 +144,19 @@ async function main() {
         await rejects("An approved request cannot be decided twice", () => decideEvaluation(tx, admin, { evaluationId: submitted.id, decision: "reject", comment: "changed my mind" }));
         await rejects("Super Admin cannot confirm payment", () => confirmPayment(tx, admin, { evaluationId: submitted.id, amount: "5000", reference: "", note: "" }));
         await rejects("Department Head cannot confirm payment", () => confirmPayment(tx, head!, { evaluationId: submitted.id, amount: "5000", reference: "", note: "" }));
-        if (finance) {
+        {
           await rejects("Payment amount is required", () => confirmPayment(tx, finance, { evaluationId: submitted.id, amount: "", reference: "", note: "" }), "amount");
           await rejects("Zero or negative payment is rejected", () => confirmPayment(tx, finance, { evaluationId: submitted.id, amount: "0", reference: "", note: "" }), "amount");
           const paid = await confirmPayment(tx, finance, { evaluationId: submitted.id, amount: "12500.505", reference: "PV-2020-001", note: "January payroll" });
-          check("Finance confirms payment", paid.status === "PAYMENT_CONFIRMED" && paid.paymentAmount === 12500.51 && paid.paymentConfirmedById === finance.id && paid.paymentReference === "PV-2020-001", paid.paymentAmount);
+          check("Finance Admin confirms payment", paid.status === "PAYMENT_CONFIRMED" && paid.paymentAmount === 12500.51 && paid.paymentConfirmedById === finance.id && paid.paymentReference === "PV-2020-001", paid.paymentAmount);
           await rejects("Payment cannot be confirmed twice", () => confirmPayment(tx, finance, { evaluationId: submitted.id, amount: "1", reference: "", note: "" }));
           await rejects("HR Note is closed after payment", () => setHrNote(tx, admin, { evaluationId: submitted.id, note: "late" }));
-        } else console.log("SKIP  Finance payment checks (no active member of the Finance department)");
+        }
+        await rejects("Finance Admin cannot create an evaluation", () => saveEvaluation(tx, finance, input({ month: 3 }), "draft"));
+        await rejects("Finance Admin cannot write the HR Note", () => setHrNote(tx, finance, { evaluationId: submitted.id, note: "x" }));
 
         const events = await tx.variablePayEvent.findMany({ where: { evaluationId: submitted.id }, orderBy: { createdAt: "asc" } });
-        const expected = ["SUBMITTED", "HR_NOTE", "RETURNED", "RESUBMITTED", "APPROVED", ...(finance ? ["PAYMENT_CONFIRMED"] : [])];
+        const expected = ["SUBMITTED", "HR_NOTE", "RETURNED", "RESUBMITTED", "APPROVED", "PAYMENT_CONFIRMED"];
         check("History records every step in order", JSON.stringify(events.map((e) => e.action)) === JSON.stringify(expected), events.map((e) => e.action));
         check("History keeps the feedback comment", events.find((e) => e.action === "RETURNED")?.comment === "Attendance score does not match the register.");
 
@@ -156,7 +165,7 @@ async function main() {
         const rejected = await decideEvaluation(tx, admin, { evaluationId: second.id, decision: "reject", comment: "Not eligible this month." });
         check("Super Admin rejects with a reason", rejected.status === "REJECTED" && rejected.decisionComment === "Not eligible this month.");
         await rejects("A rejected request cannot be edited or resubmitted", () => saveEvaluation(tx, head!, input({ month: 2 }), "submit"));
-        if (finance) await rejects("A rejected request cannot be paid", () => confirmPayment(tx, finance, { evaluationId: second.id, amount: "100", reference: "", note: "" }));
+        await rejects("A rejected request cannot be paid", () => confirmPayment(tx, finance, { evaluationId: second.id, amount: "100", reference: "", note: "" }));
 
         throw ROLLBACK;
       },
@@ -166,9 +175,9 @@ async function main() {
     if (e !== ROLLBACK) throw e;
   }
 
-  const left = await db.variablePayEvaluation.count({ where: { periodYear: YEAR, employeeId: employee.id } });
+  const left = (await db.variablePayEvaluation.count({ where: { periodYear: YEAR, employeeId: employee.id } })) + (await db.user.count({ where: { employeeId: "VP-CHECK-FIN" } }));
   const after = await db.user.findUnique({ where: { id: employee.id } });
-  check("Rolled back: no test request left behind", left === 0, left);
+  check("Rolled back: no test request or test account left behind", left === 0, left);
   check("Rolled back: employee record unchanged", after?.variablePayEligible === employee.variablePayEligible && after?.supervisorName === employee.supervisorName);
 
   /* Read-only queries against real data */

@@ -46,6 +46,7 @@ export async function requireRole(...roles: Role[]): Promise<CurrentUser> {
 export function homeFor(role: string): string {
   if (role === ROLES.EMPLOYEE) return "/my-kpi";
   if (role === ROLES.SYSTEM_ADMIN) return "/admin/employees";
+  if (role === ROLES.FINANCE_ADMIN) return "/variable-pay";
   return "/dashboard";
 }
 
@@ -58,6 +59,10 @@ export function isSystemAdmin(u: { role: string }) {
 /** Super Admin and System Admin: invite Department Heads, add and remove employees. */
 export function isAdmin(u: { role: string }) {
   return u.role === ROLES.SUPER_ADMIN || u.role === ROLES.SYSTEM_ADMIN;
+}
+/** Finance Admin: processes payment of approved Variable Pay requests. No KPI, approval or user-management access. */
+export function isFinanceAdmin(u: { role: string }) {
+  return u.role === ROLES.FINANCE_ADMIN;
 }
 export function isDeptHead(u: { role: string }) {
   return u.role === ROLES.DEPARTMENT_HEAD;

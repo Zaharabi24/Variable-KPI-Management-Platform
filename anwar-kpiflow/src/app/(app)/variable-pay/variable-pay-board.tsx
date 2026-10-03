@@ -28,7 +28,7 @@ const money = (n: number | null) => (n === null ? "—" : `BDT ${n.toLocaleStrin
 const toNum = (s: string): number | null => (s.trim() === "" || !Number.isFinite(Number(s)) ? null : Number(s));
 const periodOf = (r: VpRow) => `${MONTHS_SHORT[r.periodMonth - 1]} ${r.periodYear}`;
 
-const SCOPE_LABELS: Record<VpMode, string> = { department: "My department", review: "All requests", finance: "Finance" };
+const SCOPE_LABELS: Record<VpMode, string> = { department: "My department", review: "All requests", finance: "Payments" };
 
 /** Status always carries its word; colour only reinforces it. */
 function StatusCell({ status }: { status: VpStatus }) {
@@ -90,7 +90,7 @@ export function VariablePayBoard({
       ? `${periodLabel} · ${departmentName}`
       : mode === "review"
         ? `${caps.decide ? "Review, approve, return or reject requests" : "HR review"} · all departments${activeFilters ? " · filtered" : " · all requests"}`
-        : `Approved requests and payment history${activeFilters ? " · filtered" : ""}`;
+        : `Approved by the Super Admin · confirm the payment amount${activeFilters ? " · filtered" : " · all approved requests"}`;
 
   return (
     <>
@@ -174,7 +174,7 @@ export function VariablePayBoard({
         {mode === "review" && (
           <>
             <StatTile label="Awaiting review" value={count(VP_STATUS.SUBMITTED)} hint="Submitted by Department Heads" tone={count(VP_STATUS.SUBMITTED) ? "warn" : "default"} />
-            <StatTile label="Approved" value={count(VP_STATUS.APPROVED)} hint="With Finance for payment" />
+            <StatTile label="Approved" value={count(VP_STATUS.APPROVED)} hint="With the Finance Admin for payment" />
             <StatTile label="Returned" value={count(VP_STATUS.RETURNED)} hint="Back with the Department Head" />
             <StatTile label="Payment confirmed" value={count(VP_STATUS.PAYMENT_CONFIRMED)} hint={`${count(VP_STATUS.REJECTED)} rejected`} />
           </>
@@ -238,7 +238,7 @@ export function VariablePayBoard({
                   ? "Change or clear the filters to see more requests."
                   : mode === "review"
                     ? "Requests appear here as soon as a Department Head submits one."
-                    : "Requests appear here once the Super Admin approves them."
+                    : "Requests arrive here automatically as soon as the Super Admin approves them."
             }
             action={mode === "department" ? <Button icon={<UsersRound className="h-4 w-4" />} onClick={() => setRosterOpen(true)}>Add eligible employees</Button> : undefined}
           />
@@ -443,14 +443,14 @@ function RequestDrawer({ row, mode, caps, viewerId, future, onClose }: { row: Vp
           <FormAlert kind="success">
             <strong className="font-semibold">Approved{row.decidedBy ? ` by ${row.decidedBy}` : ""}{row.decidedAt ? ` on ${fmtDateTime(row.decidedAt)}` : ""}.</strong>{" "}
             {row.decisionComment ? `${row.decisionComment} ` : ""}
-            {row.status === VP_STATUS.APPROVED ? "Waiting for Finance to confirm the payment amount." : ""}
+            {row.status === VP_STATUS.APPROVED ? "Waiting for the Finance Admin to confirm the payment amount." : ""}
           </FormAlert>
         )}
         {future && mode === "department" && <FormAlert kind="info">This month has not started, so it cannot be evaluated yet.</FormAlert>}
 
         {row.status === VP_STATUS.PAYMENT_CONFIRMED && (
           <Card>
-            <CardHeader title="Payment" subtitle="Confirmed by Finance" />
+            <CardHeader title="Payment" subtitle="Confirmed by the Finance Admin" />
             <dl className="px-5 pb-5 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3.5">
               <Detail label="Payment amount" value={<span className="font-mono tnum font-semibold">{money(row.paymentAmount)}</span>} />
               <Detail label="Reference" value={row.paymentReference ?? "—"} />
@@ -475,6 +475,12 @@ function RequestDrawer({ row, mode, caps, viewerId, future, onClose }: { row: Vp
             <Detail label="Business Unit" value={row.businessUnit} />
             <Detail label="Submitted on" value={row.submittedAt ? fmtDateTime(row.submittedAt) : "Not submitted"} />
             <Detail label="Submitted by" value={row.submittedAt ? row.evaluatorName : "—"} />
+            {row.decidedAt && (
+              <>
+                <Detail label={row.status === VP_STATUS.RETURNED ? "Returned by" : row.status === VP_STATUS.REJECTED ? "Rejected by" : "Approved by"} value={row.decidedBy} />
+                <Detail label={row.status === VP_STATUS.RETURNED ? "Returned on" : row.status === VP_STATUS.REJECTED ? "Rejected on" : "Approved on"} value={fmtDateTime(row.decidedAt)} />
+              </>
+            )}
           </dl>
         </Card>
 
@@ -606,7 +612,7 @@ function History({ row }: { row: VpRow }) {
 /* ---------- Super Admin decision ---------- */
 
 const DECISIONS: Record<Decision, { title: string; description: string; label: string; field: string; placeholder: string; required: boolean }> = {
-  approve: { title: "Approve this request?", description: "The approved request moves to the Finance Department, who confirm the payment amount.", label: "Approve", field: "Comment (optional)", placeholder: "Any note for the Department Head or Finance", required: false },
+  approve: { title: "Approve this request?", description: "The approved request and all its details go to the Finance Admin, who confirms the payment amount.", label: "Approve", field: "Comment (optional)", placeholder: "Any note for the Department Head or Finance", required: false },
   return: { title: "Return for correction", description: "The request goes back to the Department Head with your feedback. They can correct it and submit again.", label: "Return to Department Head", field: "Feedback", placeholder: "What needs to be corrected?", required: true },
   reject: { title: "Reject this request?", description: "A rejected request is closed for this month and cannot be resubmitted. The Department Head sees your reason.", label: "Reject request", field: "Reason", placeholder: "Why is this request rejected?", required: true },
 };
@@ -652,7 +658,7 @@ function HrNoteForm({ row }: { row: VpRow }) {
       <form action={act} className="p-5 space-y-3" noValidate>
         <input type="hidden" name="evaluationId" value={row.evaluationId ?? ""} />
         {state?.message && !state.ok && <FormAlert kind="error">{state.message}</FormAlert>}
-        <Field label="HR Note" htmlFor="vp-hr-note" error={state?.errors?.hrNote} hint={row.hrNoteMeta ? `Last saved by ${row.hrNoteMeta}` : "Visible to the Department Head and Finance"}>
+        <Field label="HR Note" htmlFor="vp-hr-note" error={state?.errors?.hrNote} hint={row.hrNoteMeta ? `Last saved by ${row.hrNoteMeta}` : "Visible to the Department Head and the Finance Admin"}>
           <Textarea id="vp-hr-note" name="hrNote" value={note} onChange={(ev) => setNote(ev.target.value)} maxLength={2000} />
         </Field>
         <div className="flex justify-end"><Button type="submit" variant="outline" loading={pending} disabled={note === row.hrNote}>Save HR note</Button></div>
@@ -686,7 +692,7 @@ function PaymentForm({ row, viewerId, onDone }: { row: VpRow; viewerId: string; 
       <form ref={formRef} action={act} className="px-5 pb-5 space-y-4" noValidate>
         <input type="hidden" name="evaluationId" value={row.evaluationId ?? ""} />
         {state?.message && !state.ok && !Object.keys(e).length && <FormAlert kind="error">{state.message}</FormAlert>}
-        {own && <FormAlert kind="info">This is your own Variable Pay, so another Finance member must confirm it.</FormAlert>}
+        {own && <FormAlert kind="info">This is your own Variable Pay, so another Finance Admin must confirm it.</FormAlert>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Payment amount (BDT)" htmlFor="vp-pay-amount" required error={e.amount}>
             <Input id="vp-pay-amount" name="amount" type="number" inputMode="decimal" min={0} step="0.01" className="font-mono text-right" value={amount} onChange={(ev) => setAmount(ev.target.value)} invalid={!!e.amount} readOnly={own} placeholder="0.00" />

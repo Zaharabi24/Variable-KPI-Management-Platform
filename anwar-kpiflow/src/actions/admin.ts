@@ -43,15 +43,48 @@ export async function inviteDepartmentHeadAction(_prev: ActionState, formData: F
   return { ok: true, message: `Invitation sent to ${user.fullName}. The setup link is in the Outbox.` };
 }
 
+/** Finance Admin accounts hold payment authority, so only the Super Admin may create or change them. */
+function mayManage(admin: { role: string }, target: { role: string }) {
+  return target.role !== ROLES.FINANCE_ADMIN || admin.role === ROLES.SUPER_ADMIN;
+}
+
+function revalidateUsers() {
+  revalidatePath("/admin/employees");
+  revalidatePath("/admin/department-heads");
+  revalidatePath("/admin/finance-admins");
+}
+
+/* Invite Finance Admin — Super Admin only. The invitee sets their own password through a single-use link. */
+const inviteFinanceSchema = inviteSchema.omit({ role: true, departmentId: true }).extend({ designation: z.string().trim().max(80).optional() });
+
+export async function inviteFinanceAdminAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireRole(ROLES.SUPER_ADMIN);
+  const parsed = inviteFinanceSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(formData, flatten(parsed.error));
+  const d = parsed.data;
+  const dup = await db.user.findFirst({ where: { OR: [{ email: d.email }, { employeeId: d.employeeId }] } });
+  if (dup) return invalid(formData, { [dup.email === d.email ? "email" : "employeeId"]: "An account already exists with this value." });
+
+  const user = await db.user.create({
+    data: {
+      fullName: d.fullName, email: d.email, employeeId: d.employeeId, role: ROLES.FINANCE_ADMIN, designation: d.designation || "Finance Admin",
+      status: USER_STATUS.PENDING_SETUP, businessUnitId: d.businessUnitId, departmentId: null,
+    },
+  });
+  await issueSetupLink(user.id, user.email, user.fullName, "INVITATION", admin.id);
+  await audit(admin.id, "FINANCE_ADMIN_INVITED", "User", user.id, { email: user.email });
+  revalidateUsers();
+  return { ok: true, message: `Invitation sent to ${user.fullName}. The setup link is in the Outbox.` };
+}
+
 /* FR-SA-08 — Resend invitation */
 export async function resendInvitationAction(userId: string) {
   const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const user = await db.user.findUnique({ where: { id: userId } });
-  if (!user || user.status !== USER_STATUS.PENDING_SETUP) return;
-  await issueSetupLink(user.id, user.email, user.fullName, user.role === ROLES.DEPARTMENT_HEAD ? "INVITATION" : "SIGNUP", admin.id);
+  if (!user || user.status !== USER_STATUS.PENDING_SETUP || !mayManage(admin, user)) return;
+  await issueSetupLink(user.id, user.email, user.fullName, user.role === ROLES.DEPARTMENT_HEAD || user.role === ROLES.FINANCE_ADMIN ? "INVITATION" : "SIGNUP", admin.id);
   await audit(admin.id, "INVITATION_RESENT", "User", user.id);
-  revalidatePath("/admin/department-heads");
-  revalidatePath("/admin/employees");
+  revalidateUsers();
 }
 
 /* FR-SA-06 — Add employee */
@@ -83,12 +116,11 @@ export async function moveUserAction(_prev: ActionState, formData: FormData): Pr
   const departmentId = String(formData.get("departmentId") ?? "");
   const businessUnitId = String(formData.get("businessUnitId") ?? "");
   const user = await db.user.findUnique({ where: { id: userId } });
-  if (!user || user.role === ROLES.SUPER_ADMIN) return { ok: false, message: "User not found." };
+  if (!user || user.role === ROLES.SUPER_ADMIN || !mayManage(admin, user)) return { ok: false, message: "User not found." };
   const before = { departmentId: user.departmentId, businessUnitId: user.businessUnitId };
   await db.user.update({ where: { id: userId }, data: { departmentId: departmentId || user.departmentId, businessUnitId: businessUnitId || user.businessUnitId } });
   await audit(admin.id, "USER_MOVED", "User", userId, { before, after: { departmentId, businessUnitId } });
-  revalidatePath("/admin/employees");
-  revalidatePath("/admin/department-heads");
+  revalidateUsers();
   return { ok: true, message: "User moved. Existing KPIs stay with the department that received them." };
 }
 
@@ -96,29 +128,30 @@ export async function moveUserAction(_prev: ActionState, formData: FormData): Pr
 export async function setUserStatusAction(userId: string, status: "ACTIVE" | "DEACTIVATED") {
   const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const user = await db.user.findUnique({ where: { id: userId } });
-  if (!user || user.id === admin.id || user.role === ROLES.SUPER_ADMIN || user.role === ROLES.SYSTEM_ADMIN) return;
+  if (!user || user.id === admin.id || user.role === ROLES.SUPER_ADMIN || user.role === ROLES.SYSTEM_ADMIN || !mayManage(admin, user)) return;
   if (status === "ACTIVE" && !user.passwordHash) return; // still pending setup
   await db.user.update({ where: { id: userId }, data: { status } });
   await audit(admin.id, status === "ACTIVE" ? "USER_REACTIVATED" : "USER_DEACTIVATED", "User", userId);
-  revalidatePath("/admin/employees");
-  revalidatePath("/admin/department-heads");
+  revalidateUsers();
 }
 
 /* FR-SA-01 — Delete user (historical KPI records remain for audit, 6.4) */
 export async function deleteUserAction(userId: string) {
   const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
-  const user = await db.user.findUnique({ where: { id: userId }, include: { _count: { select: { ownedKpis: true, approvingKpis: true } } } });
-  if (!user || user.id === admin.id || user.role === ROLES.SUPER_ADMIN || user.role === ROLES.SYSTEM_ADMIN) return;
-  if (user._count.ownedKpis > 0 || user._count.approvingKpis > 0) {
-    // Keep history: deactivate instead of hard delete
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    include: { _count: { select: { ownedKpis: true, approvingKpis: true, vpEvaluations: true, vpEvaluated: true, vpHrNotes: true, vpDecided: true, vpPaymentsConfirmed: true, vpEvents: true } } },
+  });
+  if (!user || user.id === admin.id || user.role === ROLES.SUPER_ADMIN || user.role === ROLES.SYSTEM_ADMIN || !mayManage(admin, user)) return;
+  if (Object.values(user._count).some((n) => n > 0)) {
+    // Keep history: deactivate instead of hard delete (KPI records, Variable Pay requests, decisions and payments stay attributable)
     await db.user.update({ where: { id: userId }, data: { status: USER_STATUS.DEACTIVATED } });
-    await audit(admin.id, "USER_DEACTIVATED", "User", userId, { reason: "delete requested; KPI history retained" });
+    await audit(admin.id, "USER_DEACTIVATED", "User", userId, { reason: "delete requested; KPI and Variable Pay history retained" });
   } else {
     await db.user.delete({ where: { id: userId } });
     await audit(admin.id, "USER_DELETED", "User", userId, { email: user.email });
   }
-  revalidatePath("/admin/employees");
-  revalidatePath("/admin/department-heads");
+  revalidateUsers();
 }
 
 /* FR-SA-07 — Organisation lists */
@@ -182,6 +215,8 @@ export async function editUserAction(_prev: ActionState, formData: FormData): Pr
   const parsed = editUserSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(formData, flatten(parsed.error));
   const d = parsed.data;
+  const target = await db.user.findUnique({ where: { id: d.userId } });
+  if (!target || !mayManage(admin, target)) return { ok: false, message: "User not found." };
   const dup = await db.user.findFirst({ where: { employeeId: d.employeeId, NOT: { id: d.userId } } });
   if (dup) return invalid(formData, { employeeId: "Another account already uses this Employee ID." });
   await db.user.update({
@@ -189,8 +224,7 @@ export async function editUserAction(_prev: ActionState, formData: FormData): Pr
     data: { fullName: d.fullName, employeeId: d.employeeId, designation: d.designation || null, corporatePhone: d.corporatePhone || null },
   });
   await audit(admin.id, "USER_EDITED", "User", d.userId, { fullName: d.fullName, employeeId: d.employeeId });
-  revalidatePath("/admin/employees");
-  revalidatePath("/admin/department-heads");
+  revalidateUsers();
   return { ok: true, message: "User updated." };
 }
 
