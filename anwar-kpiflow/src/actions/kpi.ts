@@ -22,7 +22,7 @@ const submitSchema = z.object({
   actual: z.coerce.number({ message: "Actual must be a number." }).min(0, "Actual cannot be negative."),
   unit: z.string().trim().max(20).default(""),
   weight: z.coerce.number({ message: "KPI Weight must be a number." }).gt(0, "KPI Weight must be greater than 0.").max(100, "KPI Weight cannot exceed 100."),
-  remarks: z.string().trim().min(3, "Remarks are required."),
+  remarks: z.string().trim().default(""), // optional
   approverId: z.string({ message: "Select an Approval Person." }).min(1, "Select an Approval Person."),
 });
 
@@ -107,7 +107,6 @@ export async function saveKpiAction(_prev: ActionState, formData: FormData): Pro
 
   // Submit
   const parsed = submitSchema.safeParse(Object.fromEntries(formData));
-  if (!hasNewFile && !(existing && existing.evidence.length > 0)) errors.evidence = "Evidence file is required.";
   if (!parsed.success) return invalid(formData, { ...errors, ...flatten(parsed.error) });
   if (Object.keys(errors).length) return invalid(formData, errors);
   const d = parsed.data;

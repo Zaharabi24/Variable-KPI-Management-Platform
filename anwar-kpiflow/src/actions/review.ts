@@ -129,7 +129,7 @@ const editSchema = z.object({
   target: z.coerce.number().positive("Target must be greater than zero."),
   actual: z.coerce.number().min(0),
   weight: z.coerce.number().gt(0).max(100, "Weight must be between 0 and 100."),
-  remarks: z.string().trim().min(3, "Remarks are required."),
+  remarks: z.string().trim().default(""), // optional, as on submission
   reason: z.string().trim().min(5, "Describe why the request was edited."),
 });
 

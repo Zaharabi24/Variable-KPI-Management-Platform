@@ -79,7 +79,7 @@ export function ReviewDrawer({ item, onClose }: { item: RequestItem; onClose: ()
             <Tile label="Actual" value={`${fmtNum(item.actual)} ${item.unit}`} />
             <Tile label="Evidence" value={`${item.evidence.length} file(s)`} />
           </div>
-          <blockquote className="mt-4 border-l-4 border-brand-200 bg-surface rounded-r-lg px-4 py-2.5 text-[13.5px] text-ink-700 italic">“{item.remarks}”</blockquote>
+          {item.remarks && <blockquote className="mt-4 border-l-4 border-brand-200 bg-surface rounded-r-lg px-4 py-2.5 text-[13.5px] text-ink-700 italic">“{item.remarks}”</blockquote>}
           <ul className="mt-3 space-y-2">
             {item.evidence.map((f) => (
               <li key={f.id} className="flex items-center justify-between gap-3 rounded-lg border border-ink-100 px-3 py-2">
@@ -229,7 +229,7 @@ function EditDialog({ item, onClose, onDone }: { item: RequestItem; onClose: () 
           <Field label="Actual" htmlFor="ed-actual" required error={e.actual}><Input id="ed-actual" name="actual" type="number" step="any" className="font-mono" defaultValue={v.actual ?? item.actual} /></Field>
           <Field label="Weight (%)" htmlFor="ed-weight" required error={e.weight}><Input id="ed-weight" name="weight" type="number" step="any" className="font-mono" defaultValue={v.weight ?? item.weight} /></Field>
         </div>
-        <Field label="Remarks" htmlFor="ed-remarks" required error={e.remarks}><Textarea id="ed-remarks" name="remarks" defaultValue={v.remarks ?? item.remarks} /></Field>
+        <Field label="Remarks" htmlFor="ed-remarks" error={e.remarks}><Textarea id="ed-remarks" name="remarks" defaultValue={v.remarks ?? item.remarks} /></Field>
         <Field label="Reason for the edit" htmlFor="ed-reason" required error={e.reason}><Textarea id="ed-reason" name="reason" defaultValue={v.reason} placeholder="Why the request was corrected." className="min-h-[64px]" /></Field>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>

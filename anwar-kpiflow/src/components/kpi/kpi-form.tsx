@@ -82,11 +82,10 @@ export function KpiFormDrawer({
   const ach = t > 0 && actual !== "" && !Number.isNaN(a) ? achievementPct(t, a) : null;
   const score = ach !== null ? calculatedScore(ach) : null;
   const w = Number(weight);
-  const hasEvidence = !!file || (initial?.evidenceNames.length ?? 0) > 0;
 
   const draftValid = name.trim().length >= 2 && t > 0 && (actual === "" || a >= 0) && (weight === "" || (w > 0 && w <= 100));
   const submitValid =
-    name.trim().length >= 2 && t > 0 && actual !== "" && a >= 0 && w > 0 && w <= 100 && remarks.trim().length >= 3 && !!approverId && hasEvidence;
+    name.trim().length >= 2 && t > 0 && actual !== "" && a >= 0 && w > 0 && w <= 100 && !!approverId;
 
   React.useEffect(() => {
     if (state?.ok) {
@@ -204,12 +203,11 @@ export function KpiFormDrawer({
 
         <Field
           label="Evidence Report"
-          required
           error={e.evidence}
           hint={
             initial && initial.evidenceNames.length > 0
               ? `Current: ${initial.evidenceNames.join(", ")} · upload a new file to add it`
-              : "PDF, image, Excel, Word, CSV or text · up to 4 MB · required before submission"
+              : "PDF, image, Excel, Word, CSV or text · up to 4 MB · optional"
           }
         >
           <div
@@ -244,7 +242,7 @@ export function KpiFormDrawer({
           </div>
         </Field>
 
-        <Field label="Remarks" htmlFor="remarks" required error={e.remarks}>
+        <Field label="Remarks" htmlFor="remarks" error={e.remarks}>
           <Textarea id="remarks" name="remarks" placeholder="Explain the result and what the evidence shows." value={remarks} onChange={(ev) => setRemarks(ev.target.value)} invalid={!!e.remarks} />
         </Field>
 
