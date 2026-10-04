@@ -2,7 +2,7 @@
 import { PrismaClient, type Kpi } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { BUSINESS_UNITS, DEFAULT_DEPARTMENTS } from "../src/lib/constants";
-import { DEMO_PASSWORDS } from "../src/lib/demo";
+import { DEMO_EXTRA_EMPLOYEES, DEMO_PASSWORDS } from "../src/lib/demo";
 import { achievementPct, calculatedScore } from "../src/lib/calc";
 import { storeBuffer } from "../src/lib/storage";
 import { diffKpi, snapshotOf } from "../src/lib/versions";
@@ -78,6 +78,8 @@ async function main() {
   // Finance & Supply Chain employees (departments whose head is still being invited)
   U.jannatul = await mk("Jannatul Ferdous", "jannatul.ferdous@anwargroup.net", "AG-4001", "EMPLOYEE", "AORG", "SCM", "Procurement Officer", userHash);
   U.tanvir = await mk("Tanvir Alam", "tanvir.alam@anwargroup.net", "AG-5003", "EMPLOYEE", "ACSL", "FIN", "Accounts Executive", userHash);
+  // Extra employees that fill out the department rosters (no KPIs of their own)
+  for (const e of DEMO_EXTRA_EMPLOYEES) await mk(e.name, e.email, e.employeeId, "EMPLOYEE", e.bu, e.dept, e.designation, userHash);
   // Pending invitation (shows invitation status, resend and the Outbox)
   const pendingHead = await mk("Rezaul Karim", "rezaul.karim@anwargroup.net", "AG-0401", "DEPARTMENT_HEAD", "ACSL", "FIN", "Head of Finance & Accounts", null, "PENDING_SETUP");
   for (const p of [pendingHead]) {
@@ -218,7 +220,7 @@ async function main() {
     await db.auditLog.create({ data: { userId: u.id, action: "LOGIN", entityType: "User", entityId: u.id, createdAt: daysAgo(1, 9) } });
   }
 
-  console.log(`Seeded ${Object.keys(units).length} business units, ${Object.keys(depts).length} departments, ${Object.keys(U).length + 2} users, ${created} KPIs.`);
+  console.log(`Seeded ${Object.keys(units).length} business units, ${Object.keys(depts).length} departments, ${Object.keys(U).length + 1 + DEMO_EXTRA_EMPLOYEES.length} users, ${created} KPIs.`);
   console.log("\nDemo credentials:");
   console.log(`  Super Admin       superadmin@anwargroup.net      ${DEMO_PASSWORDS.SUPER_ADMIN}`);
   console.log(`  System Admin      sysadmin@anwargroup.net        ${DEMO_PASSWORDS.SUPER_ADMIN}`);

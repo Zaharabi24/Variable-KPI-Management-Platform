@@ -47,5 +47,31 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   { role: "Employee", name: "Tanvir Alam", email: "tanvir.alam@anwargroup.net", password: EMP, employeeId: "AG-5003", department: "Finance & Accounts", designation: "Accounts Executive" },
 ];
 
+/**
+ * Additional active employees (password as for every employee) that fill out the department rosters, e.g. the
+ * Variable Pay "Eligible employees" list. Kept out of DEMO_ACCOUNTS so the sign-in page stays short.
+ * `bu` and `dept` are Business Unit and Department codes.
+ */
+export const DEMO_EXTRA_EMPLOYEES = [
+  { name: "Anika Tabassum", email: "anika.tabassum@anwargroup.net", employeeId: "AG-1081", bu: "ATECH", dept: "GA", designation: "Business Analyst" },
+  { name: "Fahim Shahriar", email: "fahim.shahriar@anwargroup.net", employeeId: "AG-1084", bu: "ATECH", dept: "GA", designation: "Data Analyst" },
+  { name: "Lamia Haque", email: "lamia.haque@anwargroup.net", employeeId: "AG-1089", bu: "ACL", dept: "GA", designation: "Key Account Executive" },
+  { name: "Rakibul Islam", email: "rakibul.islam@anwargroup.net", employeeId: "AG-1093", bu: "AIL", dept: "GA", designation: "Territory Sales Officer" },
+  { name: "Tasnim Jahan", email: "tasnim.jahan@anwargroup.net", employeeId: "AG-1096", bu: "AGL", dept: "GA", designation: "Sales Coordinator" },
+  { name: "Sabbir Hossain", email: "sabbir.hossain@anwargroup.net", employeeId: "AG-1102", bu: "AOPL", dept: "GA", designation: "Senior Sales Executive" },
+  { name: "Nabila Sultana", email: "nabila.sultana@anwargroup.net", employeeId: "AG-1107", bu: "ACSL", dept: "GA", designation: "Market Research Officer" },
+  { name: "Ashraful Kabir", email: "ashraful.kabir@anwargroup.net", employeeId: "AG-1115", bu: "ATX", dept: "GA", designation: "Regional Sales Manager" },
+  { name: "Rumana Akter", email: "rumana.akter@anwargroup.net", employeeId: "AG-1121", bu: "ALM", dept: "GA", designation: "Customer Success Officer" },
+  { name: "Zubair Mahmud", email: "zubair.mahmud@anwargroup.net", employeeId: "AG-1128", bu: "AORG", dept: "GA", designation: "Growth Executive" },
+  { name: "Shahana Parvin", email: "shahana.parvin@anwargroup.net", employeeId: "AG-2031", bu: "ACL", dept: "HR", designation: "Compensation & Benefits Officer" },
+  { name: "Mizanur Rahman", email: "mizanur.rahman@anwargroup.net", employeeId: "AG-2036", bu: "AIL", dept: "HR", designation: "HR Business Partner" },
+  { name: "Farzana Yasmin", email: "farzana.yasmin@anwargroup.net", employeeId: "AG-2042", bu: "ATECH", dept: "HR", designation: "Payroll Executive" },
+  { name: "Rasel Mia", email: "rasel.mia@anwargroup.net", employeeId: "AG-2047", bu: "AGL", dept: "HR", designation: "Employee Relations Officer" },
+  { name: "Tahmid Rahman", email: "tahmid.rahman@anwargroup.net", employeeId: "AG-3018", bu: "ACL", dept: "MKT", designation: "Trade Marketing Executive" },
+  { name: "Ishrat Jahan", email: "ishrat.jahan@anwargroup.net", employeeId: "AG-3023", bu: "AIL", dept: "MKT", designation: "Content Specialist" },
+  { name: "Nafis Iqbal", email: "nafis.iqbal@anwargroup.net", employeeId: "AG-3029", bu: "ATECH", dept: "MKT", designation: "Graphic Designer" },
+  { name: "Sharmin Sultana", email: "sharmin.sultana@anwargroup.net", employeeId: "AG-3034", bu: "AOPL", dept: "MKT", designation: "Event & Activation Officer" },
+] as const;
+
 /** Pending invitation kept in the seed to demonstrate FR-SA-08 (status, resend, Outbox). Not able to log in until the link is used. */
 export const DEMO_PENDING_INVITATION = { name: "Rezaul Karim", email: "rezaul.karim@anwargroup.net", role: "Department Head", department: "Finance & Accounts" };

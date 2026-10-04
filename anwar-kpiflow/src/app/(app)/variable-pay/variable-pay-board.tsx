@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { BadgeDollarSign, Download, HandCoins, Lock, Send, Undo2, UsersRound, X } from "lucide-react";
+import { BadgeDollarSign, Download, HandCoins, Lock, Search, Send, Undo2, UsersRound, X } from "lucide-react";
 import { PageHeader, Card, CardHeader, StatTile, MetricBar, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Drawer, Dialog } from "@/components/ui/modal";
@@ -728,21 +728,42 @@ function PaymentForm({ row, viewerId, onDone }: { row: VpRow; viewerId: string; 
 /* ---------- Eligibility roster ---------- */
 
 function RosterDialog({ roster, onClose }: { roster: VpRosterRow[]; onClose: () => void }) {
+  const [name, setName] = React.useState("");
+  const [empId, setEmpId] = React.useState("");
+  const nameQ = name.trim().toLowerCase();
+  const idQ = empId.trim().toLowerCase();
+  const matches = (r: VpRosterRow) => r.name.toLowerCase().includes(nameQ) && r.empCode.toLowerCase().includes(idQ);
+  const shown = roster.filter(matches).length;
   return (
     <Dialog open onClose={onClose} width="max-w-3xl" title="Eligible employees" description="Choose which employees in your department are eligible for Variable Pay. DOJ and Supervisor appear on every evaluation.">
       {roster.length === 0 ? (
         <p className="text-[13px] text-ink-500">There are no employees in your department yet.</p>
       ) : (
-        <ul className="divide-y divide-ink-100 -mt-1">
-          {roster.map((r) => <RosterRow key={r.id} row={r} />)}
-        </ul>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+              <Input type="search" aria-label="Search by Employee Name" placeholder="Search by Employee Name" className="pl-9" value={name} onChange={(ev) => setName(ev.target.value)} />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+              <Input type="search" aria-label="Search by Employee ID" placeholder="Search by Employee ID" className="pl-9 font-mono placeholder:font-sans" value={empId} onChange={(ev) => setEmpId(ev.target.value)} />
+            </div>
+          </div>
+          <p className="text-[12px] text-ink-400 mb-1" aria-live="polite">{nameQ || idQ ? `${shown} of ${roster.length} employees` : `${roster.length} employee${roster.length === 1 ? "" : "s"}`}</p>
+          {/* Rows that do not match are hidden, not unmounted, so unsaved changes survive a search. */}
+          <ul className="divide-y divide-ink-100">
+            {roster.map((r) => <RosterRow key={r.id} row={r} hidden={!matches(r)} />)}
+          </ul>
+          {shown === 0 && <p className="py-6 text-center text-[13px] text-ink-500">No employee matches this name and Employee ID.</p>}
+        </>
       )}
       <div className="flex justify-end mt-5"><Button variant="outline" onClick={onClose}>Done</Button></div>
     </Dialog>
   );
 }
 
-function RosterRow({ row }: { row: VpRosterRow }) {
+function RosterRow({ row, hidden }: { row: VpRosterRow; hidden: boolean }) {
   const toast = useToast();
   const [state, act, pending] = useActionState(setEligibilityAction, null);
   const [eligible, setEligible] = React.useState(row.eligible);
@@ -756,7 +777,7 @@ function RosterRow({ row }: { row: VpRosterRow }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
   return (
-    <li className="py-3.5">
+    <li className="py-3.5" hidden={hidden}>
       <form action={act} className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.3fr)_150px_minmax(0,1fr)_auto] gap-3 sm:items-start" noValidate>
         <input type="hidden" name="employeeId" value={row.id} />
         <label className="flex items-start gap-3 min-w-0 cursor-pointer pt-1">
