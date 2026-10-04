@@ -42,7 +42,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
         {rows.length === 0 ? (
           <EmptyState icon={<Trophy className="h-5 w-5" />} title="No ranked employees yet" description={`No employee in ${deptName ?? "this department"} has an approved KPI in ${period.label}.`} />
         ) : (
-          <ol className="px-5 pb-5 grid gap-x-8 gap-y-5 md:grid-cols-2">
+          <ol className="px-5 pb-5 grid gap-y-5">
             {rows.map((r) => {
               const color = r.band === "high" ? "text-emerald-700" : r.band === "middle" ? "text-amber-700" : "text-red-600";
               const bar = r.band === "high" ? "bg-emerald-600" : r.band === "middle" ? "bg-amber-500" : "bg-red-500";
