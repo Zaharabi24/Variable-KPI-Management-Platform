@@ -22,7 +22,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={t.id}
             className={cn(
-              "animate-fade-up card px-4 py-3 flex items-start gap-3 shadow-pop",
+              "animate-fade-up card px-4 py-3.5 flex items-start gap-3 shadow-pop",
               t.kind === "success" ? "border-brand-200" : "border-red-200",
             )}
           >

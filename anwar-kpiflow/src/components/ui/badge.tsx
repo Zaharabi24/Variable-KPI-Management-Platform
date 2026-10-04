@@ -3,18 +3,18 @@ import { STATUS_LABELS, type KpiStatus } from "@/lib/constants";
 
 /** Section 15.11 — badges always carry the word, never colour alone. */
 const styles: Record<KpiStatus, string> = {
-  DRAFT: "border border-ink-300 text-ink-700 bg-ink-100/70",
-  SUBMITTED: "border border-amber-400 text-amber-800 bg-amber-50",
-  APPROVED: "bg-emerald-700 text-white border border-emerald-700",
-  ADJUSTED: "border border-emerald-600 text-emerald-800 bg-emerald-50",
-  RETURNED: "border border-red-400 text-red-700 bg-red-50",
-  REJECTED: "bg-red-600 text-white border border-red-600",
+  DRAFT: "ring-1 ring-inset ring-ink-300 text-ink-700 bg-ink-100/70",
+  SUBMITTED: "ring-1 ring-inset ring-amber-400/70 text-amber-800 bg-amber-50",
+  APPROVED: "bg-emerald-700 text-white ring-1 ring-inset ring-emerald-800/20 shadow-[0_1px_2px_rgba(4,120,87,0.3)]",
+  ADJUSTED: "ring-1 ring-inset ring-emerald-600/60 text-emerald-800 bg-emerald-50",
+  RETURNED: "ring-1 ring-inset ring-red-400/70 text-red-700 bg-red-50",
+  REJECTED: "bg-red-600 text-white ring-1 ring-inset ring-red-700/20 shadow-[0_1px_2px_rgba(185,28,28,0.3)]",
 };
 
 export function StatusBadge({ status, className, label }: { status: string; className?: string; label?: string }) {
   const s = (status in styles ? status : "SUBMITTED") as KpiStatus;
   return (
-    <span className={cn("inline-flex items-center h-6 px-2.5 rounded-full text-[11.5px] font-semibold tracking-wide whitespace-nowrap", styles[s], className)}>
+    <span className={cn("inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11.5px] font-semibold tracking-[0.01em] whitespace-nowrap before:h-1.5 before:w-1.5 before:rounded-full before:bg-current before:opacity-80", styles[s], className)}>
       {label ?? STATUS_LABELS[s]}
     </span>
   );

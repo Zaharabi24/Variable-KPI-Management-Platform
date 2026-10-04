@@ -48,13 +48,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       {superAdmin && orgCounts && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-          <Link href="/admin/department-heads" className="card p-4 flex items-center gap-3 hover:border-brand-200 transition-colors">
+          <Link href="/admin/department-heads" className="card card-lift p-4 flex items-center gap-3 hover:border-brand-200">
             <Users className="h-5 w-5 text-brand-700" /><div><div className="text-[12px] text-ink-500">Department Heads</div><div className="font-mono tnum text-[18px] font-semibold">{orgCounts[0]}</div></div>
           </Link>
-          <Link href="/admin/employees" className="card p-4 flex items-center gap-3 hover:border-brand-200 transition-colors">
+          <Link href="/admin/employees" className="card card-lift p-4 flex items-center gap-3 hover:border-brand-200">
             <Users className="h-5 w-5 text-brand-700" /><div><div className="text-[12px] text-ink-500">Employees</div><div className="font-mono tnum text-[18px] font-semibold">{orgCounts[1]}</div></div>
           </Link>
-          <Link href="/admin/department-heads" className="card p-4 flex items-center gap-3 hover:border-brand-200 transition-colors">
+          <Link href="/admin/department-heads" className="card card-lift p-4 flex items-center gap-3 hover:border-brand-200">
             <Inbox className="h-5 w-5 text-amber-600" /><div><div className="text-[12px] text-ink-500">Pending invitations</div><div className="font-mono tnum text-[18px] font-semibold">{orgCounts[2]}</div></div>
           </Link>
         </div>

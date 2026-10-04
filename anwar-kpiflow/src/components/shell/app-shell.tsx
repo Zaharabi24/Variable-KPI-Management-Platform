@@ -57,7 +57,7 @@ export function AppShell({
     <div className="min-h-screen flex">
       <Sidebar user={user} pendingCount={pendingCount} vp={vp} open={open} onClose={() => setOpen(false)} />
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-30 h-16 bg-white/85 backdrop-blur border-b border-ink-100 flex items-center px-4 sm:px-6 gap-3">
+        <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-ink-900/[0.07] shadow-[0_1px_2px_rgba(24,24,27,0.03)] flex items-center px-4 sm:px-6 lg:px-8 gap-3">
           <button className="lg:hidden h-9 w-9 rounded-lg flex items-center justify-center text-ink-700 hover:bg-ink-100" onClick={() => setOpen(true)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </button>
@@ -65,11 +65,11 @@ export function AppShell({
           <div className="ml-auto relative" ref={menuRef}>
             <button
               onClick={() => setMenu((m) => !m)}
-              className="flex items-center gap-2.5 rounded-full pl-1 pr-2 h-10 hover:bg-ink-100/70 transition-colors"
+              className="flex items-center gap-2.5 rounded-full pl-1 pr-2.5 h-10 border border-transparent hover:bg-white hover:border-ink-200 hover:shadow-field transition-[background-color,border-color,box-shadow]"
               aria-haspopup="menu"
               aria-expanded={menu}
             >
-              <span className="h-8 w-8 rounded-full bg-brand-700 text-white text-[12px] font-semibold flex items-center justify-center">{initials(user.fullName)}</span>
+              <span className="h-8 w-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-800 text-white text-[12px] font-semibold flex items-center justify-center ring-2 ring-white shadow-[0_1px_3px_rgba(136,30,29,0.35)]">{initials(user.fullName)}</span>
               <span className="hidden sm:block text-left leading-tight">
                 <span className="block text-[13px] font-medium text-ink-900">{user.fullName}</span>
                 <span className="block text-[11px] text-ink-500">{ROLE_LABELS[user.role]}</span>
@@ -77,7 +77,7 @@ export function AppShell({
               <ChevronDown className="h-4 w-4 text-ink-400" />
             </button>
             {menu && (
-              <div role="menu" className="absolute right-0 mt-2 w-60 card p-1.5 shadow-pop animate-fade-up">
+              <div role="menu" className="absolute right-0 mt-2 w-64 card p-1.5 shadow-pop animate-fade-up">
                 <div className="px-3 py-2 border-b border-ink-100 mb-1">
                   <div className="text-[13px] font-medium text-ink-900 truncate">{user.fullName}</div>
                   <div className="text-[12px] text-ink-500 truncate">{user.email}</div>

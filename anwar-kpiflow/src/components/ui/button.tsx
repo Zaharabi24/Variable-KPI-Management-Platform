@@ -15,17 +15,17 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variants: Record<Variant, string> = {
-  primary: "bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700 shadow-sm",
+  primary: "bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-button hover:from-brand-600 hover:to-brand-700 active:from-brand-700 active:to-brand-700",
   secondary: "bg-brand-50 text-brand-800 hover:bg-brand-100 border border-brand-100",
-  outline: "bg-white text-ink-700 border border-ink-200 hover:bg-ink-100/60 hover:border-ink-300",
-  ghost: "bg-transparent text-ink-700 hover:bg-ink-100/70",
+  outline: "bg-white text-ink-700 border border-ink-200 shadow-field hover:bg-ink-100/50 hover:border-ink-300 hover:text-ink-900",
+  ghost: "bg-transparent text-ink-700 hover:bg-ink-100/70 hover:text-ink-900",
   subtle: "bg-ink-100/70 text-ink-700 hover:bg-ink-200/70",
-  danger: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-sm",
+  danger: "bg-gradient-to-b from-red-600 to-red-700 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(127,29,29,0.3)] hover:from-red-700 hover:to-red-800",
 };
 
 const sizes: Record<Size, string> = {
   sm: "h-8 px-3 text-[13px] rounded-lg gap-1.5",
-  md: "h-10 px-4 text-[14px] rounded-lg gap-2",
+  md: "h-10 px-4 text-[14px] rounded-[10px] gap-2",
   lg: "h-11 px-5 text-[15px] rounded-xl gap-2",
 };
 
@@ -38,8 +38,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center font-medium whitespace-nowrap transition-colors select-none",
-        "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none",
+        "inline-flex items-center justify-center font-medium whitespace-nowrap select-none",
+        "transition-[color,background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.98]",
+        "disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed disabled:pointer-events-none",
         variants[variant],
         sizes[size],
         className,

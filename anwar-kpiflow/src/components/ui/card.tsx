@@ -24,7 +24,7 @@ export function CardHeader({
   return (
     <div className={cn("flex items-start justify-between gap-4 px-5 pt-5 pb-3", className)}>
       <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold text-ink-900 leading-6">{title}</h2>
+        <h2 className="text-[15.5px] font-semibold text-ink-900 leading-6">{title}</h2>
         {subtitle && <p className="text-[13px] text-ink-500 mt-0.5">{subtitle}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
@@ -48,7 +48,7 @@ export function PageHeader({
   return (
     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
       <div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-ink-900">{title}</h1>
+        <h1 className="text-[24px] leading-8 font-semibold tracking-[-0.022em] text-ink-900">{title}</h1>
         {subtitle && <p className="text-[13.5px] text-ink-500 mt-1">{subtitle}</p>}
       </div>
       {action && <div className="shrink-0 flex items-center gap-2">{action}</div>}
@@ -69,7 +69,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center text-center py-14 px-6">
-      {icon && <div className="mb-3 h-11 w-11 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center">{icon}</div>}
+      {icon && <div className="mb-3 h-12 w-12 rounded-2xl bg-gradient-to-b from-brand-50 to-brand-100/70 text-brand-700 ring-1 ring-inset ring-brand-500/10 flex items-center justify-center">{icon}</div>}
       <h3 className="text-[15px] font-semibold text-ink-900">{title}</h3>
       {description && <p className="text-[13px] text-ink-500 mt-1 max-w-sm">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
@@ -92,9 +92,10 @@ export function StatTile({
 }) {
   const toneCls = { default: "text-ink-900", good: "text-brand-700", bad: "text-red-600", warn: "text-amber-700", up: "text-emerald-700" }[tone];
   return (
-    <div className="card p-5 flex flex-col min-w-0 h-full">
-      <div className="text-[12px] font-medium text-ink-500 uppercase tracking-wide">{label}</div>
-      <div className={cn("mt-2 text-[26px] font-semibold tnum leading-none", toneCls)}>{value}</div>
+    <div className="card card-lift relative overflow-hidden p-5 flex flex-col min-w-0 h-full">
+      <span className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/35 to-transparent" aria-hidden />
+      <div className="text-[11.5px] font-semibold text-ink-500 uppercase tracking-[0.07em]">{label}</div>
+      <div className={cn("mt-2.5 text-[28px] font-semibold tnum leading-none tracking-[-0.02em]", toneCls)}>{value}</div>
       {hint && <div className="mt-2 text-[12.5px] text-ink-500">{hint}</div>}
       {children && <div className="mt-auto pt-3">{children}</div>}
     </div>

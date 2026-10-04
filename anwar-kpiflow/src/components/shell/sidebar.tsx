@@ -118,7 +118,7 @@ export function Sidebar({
       {open && <div className="fixed inset-0 z-40 bg-ink-900/40 lg:hidden" onClick={onClose} aria-hidden />}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-[264px] bg-white border-r border-ink-100 flex flex-col transition-transform lg:translate-x-0 lg:static lg:z-auto",
+          "fixed inset-y-0 left-0 z-50 w-[264px] bg-white border-r border-ink-900/[0.07] flex flex-col transition-transform lg:translate-x-0 lg:static lg:z-auto",
           open ? "translate-x-0" : "-translate-x-full",
         )}
         aria-label="Sidebar"
@@ -129,12 +129,12 @@ export function Sidebar({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="h-1 bg-brand-500" aria-hidden />
+        <div className="h-[3px] bg-gradient-to-r from-brand-500 via-brand-600 to-brand-800" aria-hidden />
 
         <nav className="flex-1 overflow-y-auto scroll-thin px-3 py-4 space-y-6">
           {groups.map((g) => (
             <div key={g.section}>
-              <div className="px-3 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-ink-400">{g.section}</div>
+              <div className="px-3 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-400">{g.section}</div>
               <ul className="space-y-0.5">
                 {g.items.map((it) => {
                   const active = pathname === it.href || pathname.startsWith(it.href + "/");
@@ -144,8 +144,8 @@ export function Sidebar({
                         href={it.href}
                         onClick={onClose}
                         className={cn(
-                          "group relative flex items-center gap-3 rounded-lg px-3 h-10 text-[13.5px] transition-colors",
-                          active ? "bg-brand-50 text-brand-700 font-semibold" : "text-ink-700 hover:bg-ink-100/70 hover:text-ink-900",
+                          "group relative flex items-center gap-3 rounded-[10px] px-3 h-10 text-[13.5px] transition-colors",
+                          active ? "bg-gradient-to-r from-brand-50 to-brand-50/40 text-brand-700 font-semibold ring-1 ring-inset ring-brand-500/10" : "text-ink-700 hover:bg-ink-100/70 hover:text-ink-900",
                         )}
                         aria-current={active ? "page" : undefined}
                       >
@@ -153,7 +153,7 @@ export function Sidebar({
                         <it.icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-brand-500" : "text-ink-400 group-hover:text-ink-700")} />
                         <span className="truncate">{it.label}</span>
                         {it.badge ? (
-                          <span className="ml-auto min-w-[22px] h-5 px-1.5 rounded-full bg-brand-500 text-white text-[11px] font-bold flex items-center justify-center tnum">
+                          <span className="ml-auto min-w-[22px] h-5 px-1.5 rounded-full bg-gradient-to-b from-brand-500 to-brand-600 text-white text-[11px] font-bold flex items-center justify-center tnum shadow-[0_1px_2px_rgba(136,30,29,0.35)]">
                             {it.badge}
                           </span>
                         ) : null}

@@ -258,7 +258,7 @@ export function VariablePayBoard({
 function SheetTable({ rows, mode, caps, future, onOpen }: { rows: VpRow[]; mode: VpMode; caps: Caps; future: boolean; onOpen: (key: string) => void }) {
   const list = mode !== "department";
   const showPayment = list || rows.some((r) => r.paymentAmount !== null);
-  const th = "bg-ink-100/60 text-[11px] font-semibold uppercase tracking-wider text-ink-500 px-3 py-2.5 border-b border-ink-100 whitespace-nowrap text-left";
+  const th = "bg-[#fafafb] text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-500 px-3 py-3 border-y border-ink-100 whitespace-nowrap text-left";
   const td = "px-3 py-3 border-b border-ink-100 align-middle text-ink-900 text-[13px]";
   const numTd = cn(td, "text-right font-mono tnum");
   const nowrap = cn(td, "whitespace-nowrap");
@@ -293,7 +293,7 @@ function SheetTable({ rows, mode, caps, future, onOpen }: { rows: VpRow[]; mode:
             <th scope="col" className={th}>Submitted on</th>
             {showPayment && <th scope="col" className={cn(th, "text-right")}>Payment amount</th>}
             <th scope="col" className={th}>Status</th>
-            <th scope="col" className={cn(th, "sticky right-0 bg-ink-100 text-right")}><span className="sr-only">Action</span></th>
+            <th scope="col" className={cn(th, "sticky right-0 bg-[#fafafb] text-right")}><span className="sr-only">Action</span></th>
           </tr>
         </thead>
         <tbody>

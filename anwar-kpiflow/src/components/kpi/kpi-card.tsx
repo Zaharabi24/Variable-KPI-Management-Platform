@@ -28,7 +28,7 @@ export function KpiCard({ kpi, href, action }: { kpi: KpiCardData; href?: string
   const noActual = isDraft && !kpi.draftProgress?.actual;
   const score = kpi.finalScore ?? kpi.calculatedScore;
   return (
-    <article className="card p-5 flex flex-col h-full min-w-0">
+    <article className="card card-lift p-5 flex flex-col h-full min-w-0">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-[15.5px] font-semibold text-ink-900 leading-6 truncate" title={kpi.name}>{kpi.name}</h3>
         <StatusBadge status={kpi.status} />
@@ -53,7 +53,7 @@ export function KpiCard({ kpi, href, action }: { kpi: KpiCardData; href?: string
         {action ?? (
           <Link
             href={href ?? `/my-kpi/${kpi.id}`}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-brand-500 text-white text-[13px] font-medium hover:bg-brand-600 transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] bg-gradient-to-b from-brand-500 to-brand-600 text-white text-[13px] font-medium shadow-button hover:from-brand-600 hover:to-brand-700 transition-[background-color,box-shadow]"
           >
             View Details <ChevronRight className="h-4 w-4" />
           </Link>
