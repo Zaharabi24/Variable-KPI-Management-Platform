@@ -58,6 +58,31 @@ Department Heads submit their own KPIs through My KPI; those go to the Super Adm
 | Jannatul Ferdous | jannatul.ferdous@anwargroup.net | AG-4001 | Supply Chain | Procurement Officer (no Department Head yet, so no approver is offered until one is invited) |
 | Tanvir Alam | tanvir.alam@anwargroup.net | AG-5003 | Finance & Accounts | Accounts Executive (approver appears once Rezaul Karim accepts his invitation) |
 
+### Additional employees — same password `User@2026`
+
+These fill out the department rosters (for example the Variable Pay **Eligible employees** list and its Employee Name / Employee ID search). They have no KPIs of their own. On an existing database add them without reseeding: `npx tsx scripts/add-demo-employees.ts`.
+
+| Name | Email | Employee ID | Department | Designation |
+|---|---|---|---|---|
+| Anika Tabassum | anika.tabassum@anwargroup.net | AG-1081 | Growth Analytics | Business Analyst |
+| Fahim Shahriar | fahim.shahriar@anwargroup.net | AG-1084 | Growth Analytics | Data Analyst |
+| Lamia Haque | lamia.haque@anwargroup.net | AG-1089 | Growth Analytics | Key Account Executive |
+| Rakibul Islam | rakibul.islam@anwargroup.net | AG-1093 | Growth Analytics | Territory Sales Officer |
+| Tasnim Jahan | tasnim.jahan@anwargroup.net | AG-1096 | Growth Analytics | Sales Coordinator |
+| Sabbir Hossain | sabbir.hossain@anwargroup.net | AG-1102 | Growth Analytics | Senior Sales Executive |
+| Nabila Sultana | nabila.sultana@anwargroup.net | AG-1107 | Growth Analytics | Market Research Officer |
+| Ashraful Kabir | ashraful.kabir@anwargroup.net | AG-1115 | Growth Analytics | Regional Sales Manager |
+| Rumana Akter | rumana.akter@anwargroup.net | AG-1121 | Growth Analytics | Customer Success Officer |
+| Zubair Mahmud | zubair.mahmud@anwargroup.net | AG-1128 | Growth Analytics | Growth Executive |
+| Shahana Parvin | shahana.parvin@anwargroup.net | AG-2031 | Human Resources | Compensation & Benefits Officer |
+| Mizanur Rahman | mizanur.rahman@anwargroup.net | AG-2036 | Human Resources | HR Business Partner |
+| Farzana Yasmin | farzana.yasmin@anwargroup.net | AG-2042 | Human Resources | Payroll Executive |
+| Rasel Mia | rasel.mia@anwargroup.net | AG-2047 | Human Resources | Employee Relations Officer |
+| Tahmid Rahman | tahmid.rahman@anwargroup.net | AG-3018 | Marketing | Trade Marketing Executive |
+| Ishrat Jahan | ishrat.jahan@anwargroup.net | AG-3023 | Marketing | Content Specialist |
+| Nafis Iqbal | nafis.iqbal@anwargroup.net | AG-3029 | Marketing | Graphic Designer |
+| Sharmin Sultana | sharmin.sultana@anwargroup.net | AG-3034 | Marketing | Event & Activation Officer |
+
 ## Pending invitation (demonstrates FR-SA-08)
 
 | Name | Email | Role | Department | How to activate |
