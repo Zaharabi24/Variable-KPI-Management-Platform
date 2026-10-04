@@ -9,8 +9,8 @@ const EMPLOYEE_ONLY_BLOCK = ["/dashboard", "/pending-requests", "/variable-pay",
 const HEAD_BLOCK = ["/admin"];
 const SUPER_ADMIN_BLOCK = ["/my-kpi", "/performance"];
 /** Finance Admin is allow-listed: the Variable Pay payment workspace and their own profile, nothing else. */
-const FINANCE_ADMIN_ALLOW = ["/variable-pay", "/profile", "/api/variable-pay"];
-const SYSTEM_ADMIN_ALLOW = ["/admin/department-heads", "/admin/employees", "/admin/kpis", "/my-kpi/", "/profile", "/api", "/dev"];
+const FINANCE_ADMIN_ALLOW = ["/variable-pay", "/mailbox", "/profile", "/api/variable-pay", "/api/mailbox"];
+const SYSTEM_ADMIN_ALLOW = ["/admin/department-heads", "/admin/employees", "/admin/kpis", "/my-kpi/", "/mailbox", "/profile", "/api", "/dev"];
 
 function homeFor(role: string) {
   if (role === "EMPLOYEE") return "/my-kpi";

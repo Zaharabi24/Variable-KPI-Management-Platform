@@ -51,6 +51,24 @@
   .input-error {
     @apply border-red-400 focus:border-red-500 focus:ring-red-500/[0.14];
   }
+  /* Mailbox message body: the base reset removes list and link styling, so restore it for written content */
+  .mail-body ul {
+    @apply list-disc pl-6 my-2;
+  }
+  .mail-body ol {
+    @apply list-decimal pl-6 my-2;
+  }
+  .mail-body a {
+    @apply text-brand-700 underline underline-offset-2;
+  }
+  .mail-body p + p,
+  .mail-body div + div {
+    @apply mt-1;
+  }
+  .mail-editor:empty::before {
+    content: attr(data-placeholder);
+    @apply text-ink-300 pointer-events-none;
+  }
   .scroll-thin::-webkit-scrollbar {
     width: 8px;
     height: 8px;

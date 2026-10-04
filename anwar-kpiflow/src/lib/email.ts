@@ -2,7 +2,7 @@ import { db } from "./db";
 
 /**
  * Transactional email service (Section 17.3).
- * The prototype delivers to an in-app Outbox (/dev/outbox) instead of SMTP so the
+ * The prototype delivers to an in-app Outbox (Mailbox → Email Outbox; /dev/outbox while signed out) instead of SMTP so the
  * sign-up → secure link → set password flow is fully workable offline.
  * Swap `deliver` for an SMTP/API provider in production; the log is kept for retries.
  */

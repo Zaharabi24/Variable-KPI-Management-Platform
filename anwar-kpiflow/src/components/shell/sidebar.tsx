@@ -14,8 +14,10 @@ type Item = { href: string; label: string; icon: React.ComponentType<{ className
 /** Section 8.2 — sidebar navigation by role. */
 export type VpNav = { show: boolean; badge: number };
 
-export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: false, badge: 0 }): { section: string; items: Item[] }[] {
+export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: false, badge: 0 }, mailUnread = 0): { section: string; items: Item[] }[] {
   const variablePay: Item[] = vp.show ? [{ href: "/variable-pay", label: "Variable Pay", icon: HandCoins, badge: vp.badge }] : [];
+  // Every role has a Mailbox; the badge counts unread messages in the Inbox.
+  const mailbox: Item = { href: "/mailbox", label: "Mailbox", icon: Mail, badge: mailUnread };
   if (role === ROLES.EMPLOYEE) {
     return [
       {
@@ -25,6 +27,7 @@ export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: fal
           { href: "/my-kpi", label: "My KPI", icon: Target },
           { href: "/performance", label: "Performance Summary", icon: BarChart3 },
           ...variablePay,
+          mailbox,
         ],
       },
     ];
@@ -38,6 +41,7 @@ export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: fal
           { href: "/pending-requests", label: "KPI Pending Request", icon: Inbox, badge: pendingCount },
           ...variablePay,
           { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+          mailbox,
         ],
       },
       {
@@ -53,7 +57,7 @@ export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: fal
   if (role === ROLES.FINANCE_ADMIN) {
     return [
       { section: "Finance", items: variablePay },
-      { section: "Account", items: [{ href: "/profile", label: "Profile", icon: UserCircle2 }] },
+      { section: "Account", items: [mailbox, { href: "/profile", label: "Profile", icon: UserCircle2 }] },
     ];
   }
   if (role === ROLES.SYSTEM_ADMIN) {
@@ -66,7 +70,7 @@ export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: fal
           { href: "/admin/kpis", label: "All KPIs", icon: ListChecks },
         ],
       },
-      { section: "Account", items: [{ href: "/profile", label: "Profile", icon: UserCircle2 }] },
+      { section: "Account", items: [mailbox, { href: "/profile", label: "Profile", icon: UserCircle2 }] },
     ];
   }
   return [
@@ -77,6 +81,7 @@ export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: fal
         { href: "/pending-requests", label: "KPI Pending Request", icon: Inbox, badge: pendingCount },
         ...variablePay,
         { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+        mailbox,
       ],
     },
     {
@@ -89,7 +94,6 @@ export function navFor(role: Role, pendingCount: number, vp: VpNav = { show: fal
         { href: "/admin/versions", label: "Version Control and History", icon: History },
         { href: "/admin/organisation", label: "Units and Departments", icon: Building2 },
         { href: "/admin/audit", label: "Audit Trail", icon: ScrollText },
-        { href: "/dev/outbox", label: "Email Outbox", icon: Mail },
       ],
     },
     { section: "Account", items: [{ href: "/profile", label: "Profile", icon: UserCircle2 }] },
@@ -100,17 +104,19 @@ export function Sidebar({
   user,
   pendingCount,
   vp,
+  mailUnread,
   open,
   onClose,
 }: {
   user: { fullName: string; role: Role; department: { name: string } | null; designation: string | null };
   pendingCount: number;
   vp?: VpNav;
+  mailUnread?: number;
   open: boolean;
   onClose: () => void;
 }) {
   const pathname = usePathname();
-  const groups = navFor(user.role, pendingCount, vp);
+  const groups = navFor(user.role, pendingCount, vp, mailUnread);
   const scope = user.department ? user.department.name : user.role === ROLES.EMPLOYEE || user.role === ROLES.FINANCE_ADMIN ? "" : "All departments";
 
   return (

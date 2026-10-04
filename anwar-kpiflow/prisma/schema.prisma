@@ -62,6 +62,10 @@ model User {
   vpDecided           VariablePayEvaluation[] @relation("VpDecidedBy")
   vpPaymentsConfirmed VariablePayEvaluation[] @relation("VpPaymentBy")
   vpEvents            VariablePayEvent[]
+
+  // Mailbox
+  sentMail     MailMessage[]   @relation("MailSender")
+  receivedMail MailRecipient[] @relation("MailRecipientUser")
 }
 
 model AccountToken {
@@ -173,6 +177,54 @@ model EmailLog {
   body      String   @db.Text
   link      String?
   createdAt DateTime @default(now())
+}
+
+/// Mailbox: a message written in the app by a Super Admin or Department Head.
+/// A draft keeps its intended recipients as a JSON id list; sending freezes them into MailRecipient rows.
+model MailMessage {
+  id                String           @id @default(cuid())
+  senderId          String
+  sender            User             @relation("MailSender", fields: [senderId], references: [id], onDelete: Cascade)
+  subject           String
+  bodyHtml          String           @db.Text // sanitised on save (lib/mailbox.ts)
+  status            String           @default("DRAFT") // DRAFT | SENT
+  audience          String           @default("SELECTED") // SELECTED | ALL
+  draftRecipientIds String           @default("[]") @db.Text
+  recipientCount    Int              @default(0)
+  sentAt            DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  recipients        MailRecipient[]
+  attachments       MailAttachment[]
+
+  @@index([senderId, status])
+}
+
+/// One delivered copy of a sent message. Name and email are snapshotted at send time.
+model MailRecipient {
+  id        String      @id @default(cuid())
+  messageId String
+  message   MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation("MailRecipientUser", fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  readAt    DateTime?
+
+  @@unique([messageId, userId])
+  @@index([userId, readAt])
+}
+
+model MailAttachment {
+  id        String      @id @default(cuid())
+  messageId String
+  message   MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  fileName  String
+  mimeType  String
+  size      Int
+  sha256    String
+  data      Bytes // kept in the database, like evidence files
+  createdAt DateTime    @default(now())
 }
 
 model Setting {

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { AppShell } from "@/components/shell/app-shell";
 import { ROLES } from "@/lib/constants";
 import { variablePayNav } from "@/lib/variable-pay-data";
+import { unreadMailCount } from "@/lib/mailbox-data";
 
 /** Vercel: allow slow database round trips and cold starts to finish instead of cutting the response (default is 10 s on Hobby). */
 export const maxDuration = 60;
@@ -26,10 +27,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     });
   }
 
-  const vp = await variablePayNav(user);
+  const [vp, mailUnread] = await Promise.all([variablePayNav(user), unreadMailCount(user.id)]);
 
   return (
-    <AppShell user={user} pendingCount={pendingCount} vp={vp}>
+    <AppShell user={user} pendingCount={pendingCount} vp={vp} mailUnread={mailUnread}>
       {children}
     </AppShell>
   );
