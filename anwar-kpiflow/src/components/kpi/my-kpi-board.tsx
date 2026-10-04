@@ -61,7 +61,7 @@ export function MyKpiBoard({
                     <button
                       type="button"
                       onClick={() => setDraft(drafts[k.id])}
-                      className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-brand-500 text-white text-[13px] font-medium hover:bg-brand-600 transition-colors"
+                      className="btn-brand h-9 px-4 text-[13px]"
                     >
                       <PencilLine className="h-4 w-4" /> Continue draft
                     </button>

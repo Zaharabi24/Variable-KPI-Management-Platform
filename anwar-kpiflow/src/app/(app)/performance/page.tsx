@@ -101,7 +101,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
                     <Td align="right" mono>{k.finalScore === null ? <span className="text-ink-300">—</span> : fmtNum(k.finalScore)}</Td>
                     <Td>
                       {k.evidence.length > 0 ? (
-                        <a href={`/api/evidence/${k.evidence[0].id}`} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg border border-ink-200 bg-white text-[12px] font-medium text-ink-700 hover:bg-ink-100/60">
+                        <a href={`/api/evidence/${k.evidence[0].id}`} className="btn-outline h-7 px-2.5 text-[12px] rounded-lg">
                           <FileText className="h-3.5 w-3.5" /> {k.evidence.length} file{k.evidence.length === 1 ? "" : "s"}
                         </a>
                       ) : <span className="text-ink-300">—</span>}

@@ -17,7 +17,7 @@ export default async function OutboxPage() {
   ]);
   return (
     <div className="min-h-screen bg-surface">
-      <header className="h-16 bg-white border-b border-ink-100 flex items-center px-6 gap-4">
+      <header className="h-16 bg-white/80 backdrop-blur-md border-b border-ink-900/[0.07] flex items-center px-6 gap-4">
         <Link href={user ? "/" : "/login"} className="text-ink-500 hover:text-ink-900 flex items-center gap-1.5 text-[13px]">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
@@ -25,8 +25,8 @@ export default async function OutboxPage() {
       </header>
       <main className="max-w-3xl mx-auto px-6 py-8">
         <div className="flex items-center gap-3 mb-1">
-          <div className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center"><Mail className="h-5 w-5" /></div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Email Outbox</h1>
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-b from-brand-50 to-brand-100/70 text-brand-700 ring-1 ring-inset ring-brand-500/10 flex items-center justify-center"><Mail className="h-5 w-5" /></div>
+          <h1 className="text-[24px] leading-8 font-semibold tracking-[-0.022em]">Email Outbox</h1>
         </div>
         <p className="text-[13.5px] text-ink-500 mb-6">
           The prototype delivers setup and invitation emails here instead of a mail server. Open a link to continue the flow exactly as the recipient would.

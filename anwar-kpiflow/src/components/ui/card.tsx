@@ -93,7 +93,8 @@ export function StatTile({
   const toneCls = { default: "text-ink-900", good: "text-brand-700", bad: "text-red-600", warn: "text-amber-700", up: "text-emerald-700" }[tone];
   return (
     <div className="card card-lift relative overflow-hidden p-5 flex flex-col min-w-0 h-full">
-      <span className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/35 to-transparent" aria-hidden />
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-brand-500/0 via-brand-500/60 to-brand-500/0" aria-hidden />
+      <span className="pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full bg-brand-500/[0.07] blur-2xl" aria-hidden />
       <div className="text-[11.5px] font-semibold text-ink-500 uppercase tracking-[0.07em]">{label}</div>
       <div className={cn("mt-2.5 text-[28px] font-semibold tnum leading-none tracking-[-0.02em]", toneCls)}>{value}</div>
       {hint && <div className="mt-2 text-[12.5px] text-ink-500">{hint}</div>}

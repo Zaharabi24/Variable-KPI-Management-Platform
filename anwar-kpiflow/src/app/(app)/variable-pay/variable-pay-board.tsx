@@ -100,14 +100,14 @@ export function VariablePayBoard({
         action={
           <div className="flex flex-wrap items-center gap-2">
             {scopes.length > 1 && (
-              <div className="inline-flex rounded-lg border border-ink-200 bg-white p-0.5" role="tablist" aria-label="View">
+              <div className="seg" role="tablist" aria-label="View">
                 {scopes.map((s) => (
                   <button
                     key={s}
                     role="tab"
                     aria-selected={mode === s}
                     onClick={() => go({ scope: s }, true)}
-                    className={cn("h-8 px-3 rounded-md text-[12.5px] font-medium transition-colors", mode === s ? "bg-brand-700 text-white shadow-sm" : "text-ink-700 hover:bg-ink-100")}
+                    className={cn("seg-item", mode === s && "seg-item-active")}
                   >
                     {SCOPE_LABELS[s]}
                   </button>
@@ -220,7 +220,7 @@ export function VariablePayBoard({
                 <Button variant="outline" size="sm" icon={<UsersRound className="h-4 w-4" />} onClick={() => setRosterOpen(true)}>Eligible employees</Button>
               )}
               {rows.length > 0 && (
-                <a href={`/api/variable-pay/export?${exportQuery.toString()}`} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-ink-200 bg-white text-[13px] font-medium text-ink-700 hover:bg-ink-100/60">
+                <a href={`/api/variable-pay/export?${exportQuery.toString()}`} className="btn-outline h-8 px-3 text-[13px]">
                   <Download className="h-4 w-4" /> Export
                 </a>
               )}

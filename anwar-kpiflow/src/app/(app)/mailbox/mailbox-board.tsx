@@ -40,14 +40,14 @@ export function MailboxBoard({
     <>
       <PageHeader title="Mailbox" subtitle={subtitle} />
       {tabs.length > 1 && (
-        <div className="mb-6 inline-flex flex-wrap rounded-xl border border-ink-200 bg-white p-1 shadow-field" role="tablist" aria-label="Mailbox">
+        <div className="seg mb-6" role="tablist" aria-label="Mailbox">
           {tabs.map((t) => (
             <Link
               key={t}
               href={`/mailbox?tab=${t}`}
               role="tab"
               aria-selected={tab === t}
-              className={cn("inline-flex items-center gap-2 h-8 px-3.5 rounded-lg text-[13px] font-medium transition-colors", tab === t ? "bg-brand-700 text-white shadow-sm" : "text-ink-700 hover:bg-ink-100")}
+              className={cn("seg-item", tab === t && "seg-item-active")}
             >
               {MAIL_TAB_LABELS[t]}
               {counts[t] ? <span className={cn("min-w-[18px] h-[18px] px-1 rounded-full text-[10.5px] font-bold flex items-center justify-center tnum", tab === t ? "bg-white/20 text-white" : "bg-brand-500 text-white")}>{counts[t]}</span> : null}
@@ -142,7 +142,7 @@ function SentTab({ rows, viewerName }: { rows: SentRow[]; viewerName: string }) 
 
   return (
     <Card>
-      <CardHeader title="Sent mail" subtitle={`${rows.length} email${rows.length === 1 ? "" : "s"} sent by you, newest first`} action={<Link href="/mailbox?tab=compose" className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-ink-200 bg-white text-[13px] font-medium text-ink-700 shadow-field hover:bg-ink-100/50"><PenLine className="h-4 w-4" /> Compose</Link>} />
+      <CardHeader title="Sent mail" subtitle={`${rows.length} email${rows.length === 1 ? "" : "s"} sent by you, newest first`} action={<Link href="/mailbox?tab=compose" className="btn-outline h-8 px-3 text-[13px]"><PenLine className="h-4 w-4" /> Compose</Link>} />
       {rows.length === 0 ? (
         <EmptyState icon={<Send className="h-5 w-5" />} title="Nothing sent yet" description="Emails you send from Compose are kept here, with who has read them." />
       ) : (
@@ -212,7 +212,7 @@ function DraftsTab({ rows }: { rows: DraftRow[] }) {
                 </span>
                 <span className="block text-[12px] text-ink-400 mt-0.5">{r.audience === MAIL_AUDIENCE.ALL ? "To: All employees" : `To: ${r.recipientIds.length} selected`}</span>
               </span>
-              <Link href={`/mailbox?tab=compose&draft=${r.id}`} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-ink-200 bg-white text-[13px] font-medium text-ink-700 shadow-field hover:bg-ink-100/50 shrink-0"><PenLine className="h-4 w-4" /> Continue</Link>
+              <Link href={`/mailbox?tab=compose&draft=${r.id}`} className="btn-outline h-8 px-3 text-[13px] shrink-0"><PenLine className="h-4 w-4" /> Continue</Link>
               <Button variant="ghost" size="sm" className="shrink-0 text-ink-500 hover:text-red-700" aria-label={`Delete draft ${r.subject || "(No subject)"}`} onClick={() => setDeleting(r)}><Trash2 className="h-4 w-4" /></Button>
             </li>
           ))}

@@ -22,7 +22,7 @@ export function PeriodFilter({ period, compact = false }: { period: PeriodRange;
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", compact && "gap-1.5")}>
-      <div className="inline-flex rounded-lg border border-ink-200 bg-white p-0.5" role="tablist" aria-label="Period type">
+      <div className="seg" role="tablist" aria-label="Period type">
         {(["MONTHLY", "QUARTERLY", "YEARLY"] as const).map((t) => (
           <button
             key={t}
@@ -30,8 +30,8 @@ export function PeriodFilter({ period, compact = false }: { period: PeriodRange;
             aria-selected={period.type === t}
             onClick={() => set({ type: t })}
             className={cn(
-              "h-8 px-3 rounded-md text-[12.5px] font-medium transition-colors",
-              period.type === t ? "bg-brand-700 text-white shadow-sm" : "text-ink-600 hover:bg-ink-100",
+              "seg-item",
+              period.type === t && "seg-item-active",
             )}
           >
             {t === "MONTHLY" ? "Monthly" : t === "QUARTERLY" ? "Quarterly" : "Yearly"}

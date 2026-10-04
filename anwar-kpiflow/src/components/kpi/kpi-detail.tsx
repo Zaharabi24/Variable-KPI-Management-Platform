@@ -49,7 +49,7 @@ export function KpiDetailHeader({ kpi, actions }: { kpi: KpiDetailData; actions?
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {actions}
-        <a href={`/api/kpi/${kpi.id}/report`} className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg border border-ink-200 bg-white text-[13px] font-medium text-ink-700 hover:bg-ink-100/60">
+        <a href={`/api/kpi/${kpi.id}/report`} className="btn-outline gap-2 h-9 px-3.5 text-[13px]">
           <Download className="h-4 w-4" /> Download report
         </a>
       </div>

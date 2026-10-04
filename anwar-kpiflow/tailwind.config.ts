@@ -37,8 +37,8 @@ export default {
       },
       boxShadow: {
         // Layered elevation: a tight contact shadow plus a soft ambient one
-        card: "0 1px 2px rgba(24,24,27,0.04), 0 4px 16px -4px rgba(24,24,27,0.06)",
-        lift: "0 2px 4px rgba(24,24,27,0.04), 0 12px 28px -8px rgba(24,24,27,0.12)",
+        card: "0 1px 1px rgba(24,24,27,0.03), 0 3px 6px -1px rgba(24,24,27,0.04), 0 16px 32px -14px rgba(24,24,27,0.12)",
+        lift: "0 2px 4px rgba(24,24,27,0.04), 0 8px 16px -4px rgba(24,24,27,0.06), 0 28px 48px -16px rgba(24,24,27,0.18)",
         pop: "0 4px 10px -2px rgba(24,24,27,0.08), 0 24px 56px -12px rgba(24,24,27,0.28)",
         field: "0 1px 2px rgba(24,24,27,0.04)",
         button: "inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 2px rgba(136,30,29,0.3), 0 4px 10px -4px rgba(222,51,50,0.45)",

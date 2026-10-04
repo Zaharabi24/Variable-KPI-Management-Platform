@@ -16,7 +16,9 @@
   body {
     @apply bg-surface text-ink-900 font-sans text-[14px] leading-6;
     letter-spacing: -0.006em;
-    background-image: radial-gradient(1100px 520px at 100% -8%, rgba(222, 51, 50, 0.04), transparent 62%);
+    background-image:
+      radial-gradient(1100px 520px at 100% -8%, rgba(222, 51, 50, 0.05), transparent 62%),
+      radial-gradient(900px 480px at -10% 108%, rgba(24, 24, 27, 0.035), transparent 60%);
     background-attachment: fixed;
   }
   h1, h2, h3 {
@@ -35,7 +37,30 @@
 
 @layer components {
   .card {
-    @apply bg-white border border-ink-900/[0.07] rounded-2xl shadow-card;
+    @apply border border-ink-900/[0.06] rounded-[18px] shadow-card;
+    /* A faint top-to-bottom wash and an inner top highlight give the surface depth without colour */
+    background: linear-gradient(180deg, #ffffff 0%, #fdfdfe 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), theme("boxShadow.card");
+  }
+  /* Segmented control (view / period / tab switchers) */
+  .seg {
+    @apply inline-flex flex-wrap rounded-xl border border-ink-200 bg-white p-1 shadow-field;
+  }
+  .seg-item {
+    @apply inline-flex items-center gap-2 h-8 px-3.5 rounded-lg text-[13px] font-medium text-ink-700 transition-colors hover:bg-ink-100;
+  }
+  .seg-item-active {
+    @apply bg-gradient-to-b from-brand-600 to-brand-700 text-white hover:bg-transparent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(136, 30, 29, 0.35);
+  }
+  /* Links that look like buttons (downloads, exports, "continue") */
+  .btn-outline {
+    @apply inline-flex items-center gap-1.5 rounded-[10px] border border-ink-200 bg-white font-medium text-ink-700 shadow-field transition-[background-color,border-color,color]
+      hover:bg-ink-100/50 hover:border-ink-300 hover:text-ink-900;
+  }
+  .btn-brand {
+    @apply inline-flex items-center gap-1.5 rounded-[10px] bg-gradient-to-b from-brand-500 to-brand-600 text-white font-medium shadow-button transition-[background-color,box-shadow]
+      hover:from-brand-600 hover:to-brand-700;
   }
   /* Stand-alone cards (stat tiles, KPI cards) lift slightly under the pointer */
   .card-lift {

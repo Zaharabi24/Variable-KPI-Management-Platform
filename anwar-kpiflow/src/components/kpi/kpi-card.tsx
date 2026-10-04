@@ -53,7 +53,7 @@ export function KpiCard({ kpi, href, action }: { kpi: KpiCardData; href?: string
         {action ?? (
           <Link
             href={href ?? `/my-kpi/${kpi.id}`}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] bg-gradient-to-b from-brand-500 to-brand-600 text-white text-[13px] font-medium shadow-button hover:from-brand-600 hover:to-brand-700 transition-[background-color,box-shadow]"
+            className="btn-brand h-9 px-4 text-[13px]"
           >
             View Details <ChevronRight className="h-4 w-4" />
           </Link>
