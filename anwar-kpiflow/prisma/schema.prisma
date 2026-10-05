@@ -58,6 +58,12 @@ model User {
   kpiFinanceDecisions Kpi[] @relation("KpiFinanceDecidedBy")
   kpiAuditDecisions   Kpi[] @relation("KpiAuditDecidedBy")
 
+  // Columns of the removed Variable Pay module. Nothing reads or writes them any more;
+  // they stay in the table so that removing the module does not drop any stored data.
+  dateOfJoining       DateTime?
+  variablePayEligible Boolean   @default(false)
+  supervisorName      String?
+
   // Mailbox
   sentMail     MailMessage[]   @relation("MailSender")
   receivedMail MailRecipient[] @relation("MailRecipientUser")

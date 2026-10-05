@@ -1,12 +1,16 @@
 /* eslint-disable no-console */
 /**
- * Moves an existing database to the KPI score-sheet model without touching its user accounts.
- * The old KPI records (target / actual / weight) and the Variable Pay records cannot be expressed in the
- * new model, so they are exported to a JSON backup first and then removed.
+ * Moves an existing database to the KPI score-sheet model without touching its user accounts and
+ * without deleting anything. The old KPI records (target / actual / weight) and the Variable Pay records
+ * cannot be expressed in the new model, so their tables are moved, with all their rows, into a separate
+ * Postgres schema called "legacy" (and exported to a JSON file as a second copy). The new tables are then
+ * created empty in the main schema.
  *
- *   1. npx tsx --env-file=.env scripts/migrate-score-sheets.ts prepare    backup + remove old KPI and Variable Pay rows
- *   2. npx prisma db push --accept-data-loss                              drop the old columns and tables, add the new ones
+ *   1. npx tsx --env-file=.env scripts/migrate-score-sheets.ts archive    JSON export + move the old tables to schema "legacy"
+ *   2. npx prisma db push                                                 create the new tables (no data-loss flag needed)
  *   3. npx tsx --env-file=.env scripts/migrate-score-sheets.ts finish     add the HR Admin and Audit Admin accounts and demo KPI sheets
+ *
+ * To undo step 1: ALTER TABLE legacy."<name>" SET SCHEMA public; for each table.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -23,11 +27,11 @@ async function tableExists(name: string) {
   return Number(rows[0].n) > 0;
 }
 
-async function prepare() {
+async function archive() {
   const backup: Record<string, unknown[]> = {};
   for (const t of OLD_TABLES) {
     if (!(await tableExists(t))) continue;
-    // File bytes are left out of the backup; their names, sizes and fingerprints are kept.
+    // File bytes are left out of the JSON copy (they stay in the archived table); names, sizes and fingerprints are kept.
     const cols = t === "EvidenceFile" ? `"id","kpiId","fileName","storedName","mimeType","size","sha256","uploadedById","createdAt"` : "*";
     backup[t] = await db.$queryRawUnsafe(`SELECT ${cols} FROM "${t}"`);
     console.log(`${t.padEnd(24)} ${backup[t].length} rows`);
@@ -36,14 +40,26 @@ async function prepare() {
   mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `legacy-kpi-and-variable-pay-${new Date().toISOString().slice(0, 10)}.json`);
   writeFileSync(file, JSON.stringify(backup, (_k, v) => (typeof v === "bigint" ? Number(v) : v), 2));
-  console.log(`Backup written to ${file}`);
+  console.log(`JSON copy written to ${file}`);
 
+  await db.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS legacy`);
   for (const t of OLD_TABLES) {
     if (!(await tableExists(t))) continue;
-    const n = await db.$executeRawUnsafe(`DELETE FROM "${t}"`);
-    console.log(`removed ${n} rows from ${t}`);
+    await db.$executeRawUnsafe(`ALTER TABLE "${t}" SET SCHEMA legacy`);
+    console.log(`archived ${t} -> legacy."${t}"`);
   }
-  console.log("\nNext: npx prisma db push --accept-data-loss");
+  // The archived tables still point at live tables (users). Those links are released so that the archive
+  // never blocks managing a user; links between the archived tables themselves are kept.
+  const links = await db.$queryRaw<{ tbl: string; con: string }[]>`
+    SELECT c.conrelid::regclass::text AS tbl, c.conname AS con
+    FROM pg_constraint c
+    JOIN pg_namespace n ON n.oid = c.connamespace
+    JOIN pg_class f ON f.oid = c.confrelid
+    JOIN pg_namespace fn ON fn.oid = f.relnamespace
+    WHERE c.contype = 'f' AND n.nspname = 'legacy' AND fn.nspname <> 'legacy'`;
+  for (const l of links) await db.$executeRawUnsafe(`ALTER TABLE ${l.tbl} DROP CONSTRAINT "${l.con}"`);
+  console.log(`released ${links.length} links from the archive to live tables`);
+  console.log("Next: npx prisma db push");
 }
 
 async function finish() {
@@ -67,6 +83,6 @@ async function finish() {
 }
 
 const phase = process.argv[2];
-(phase === "prepare" ? prepare() : phase === "finish" ? finish() : Promise.reject(new Error("Usage: migrate-score-sheets.ts prepare | finish")))
+(phase === "archive" ? archive() : phase === "finish" ? finish() : Promise.reject(new Error("Usage: migrate-score-sheets.ts archive | finish")))
   .catch((e) => { console.error(e); process.exitCode = 1; })
   .finally(() => db.$disconnect());
