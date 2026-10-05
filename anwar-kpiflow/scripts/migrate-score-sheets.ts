@@ -20,10 +20,17 @@ import { DEMO_ACCOUNTS } from "../src/lib/demo";
 import { seedDemoSheets } from "../prisma/demo-sheets";
 
 const db = new PrismaClient();
+/**
+ * The archive step runs raw SQL. It uses the direct (non-pooled) connection and names the schema in every
+ * statement, because a pooled connection can carry another client's search_path and an unqualified
+ * table name would then resolve to the wrong schema.
+ */
+const direct = new PrismaClient({ datasourceUrl: process.env.POSTGRES_URL_NON_POOLING ?? process.env.DATABASE_URL_UNPOOLED });
+const SRC = "public";
 const OLD_TABLES = ["ReviewDecision", "KpiVersion", "EvidenceFile", "Kpi", "VariablePayEvent", "VariablePayTask", "VariablePayEvaluation"];
 
 async function tableExists(name: string) {
-  const rows = await db.$queryRaw<{ n: bigint }[]>`SELECT count(*) AS n FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = ${name}`;
+  const rows = await direct.$queryRaw<{ n: bigint }[]>`SELECT count(*) AS n FROM information_schema.tables WHERE table_schema = ${SRC} AND table_name = ${name}`;
   return Number(rows[0].n) > 0;
 }
 
@@ -33,7 +40,7 @@ async function archive() {
     if (!(await tableExists(t))) continue;
     // File bytes are left out of the JSON copy (they stay in the archived table); names, sizes and fingerprints are kept.
     const cols = t === "EvidenceFile" ? `"id","kpiId","fileName","storedName","mimeType","size","sha256","uploadedById","createdAt"` : "*";
-    backup[t] = await db.$queryRawUnsafe(`SELECT ${cols} FROM "${t}"`);
+    backup[t] = await direct.$queryRawUnsafe(`SELECT ${cols} FROM ${SRC}."${t}"`);
     console.log(`${t.padEnd(24)} ${backup[t].length} rows`);
   }
   const dir = path.resolve(__dirname, "../../backups");
@@ -42,22 +49,23 @@ async function archive() {
   writeFileSync(file, JSON.stringify(backup, (_k, v) => (typeof v === "bigint" ? Number(v) : v), 2));
   console.log(`JSON copy written to ${file}`);
 
-  await db.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS legacy`);
+  await direct.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS legacy`);
   for (const t of OLD_TABLES) {
     if (!(await tableExists(t))) continue;
-    await db.$executeRawUnsafe(`ALTER TABLE "${t}" SET SCHEMA legacy`);
+    await direct.$executeRawUnsafe(`ALTER TABLE ${SRC}."${t}" SET SCHEMA legacy`);
     console.log(`archived ${t} -> legacy."${t}"`);
   }
   // The archived tables still point at live tables (users). Those links are released so that the archive
   // never blocks managing a user; links between the archived tables themselves are kept.
-  const links = await db.$queryRaw<{ tbl: string; con: string }[]>`
-    SELECT c.conrelid::regclass::text AS tbl, c.conname AS con
+  const links = await direct.$queryRaw<{ tbl: string; con: string }[]>`
+    SELECT format('%I.%I', n.nspname, r.relname) AS tbl, c.conname AS con
     FROM pg_constraint c
-    JOIN pg_namespace n ON n.oid = c.connamespace
+    JOIN pg_class r ON r.oid = c.conrelid
+    JOIN pg_namespace n ON n.oid = r.relnamespace
     JOIN pg_class f ON f.oid = c.confrelid
     JOIN pg_namespace fn ON fn.oid = f.relnamespace
     WHERE c.contype = 'f' AND n.nspname = 'legacy' AND fn.nspname <> 'legacy'`;
-  for (const l of links) await db.$executeRawUnsafe(`ALTER TABLE ${l.tbl} DROP CONSTRAINT "${l.con}"`);
+  for (const l of links) await direct.$executeRawUnsafe(`ALTER TABLE ${l.tbl} DROP CONSTRAINT "${l.con}"`);
   console.log(`released ${links.length} links from the archive to live tables`);
   console.log("Next: npx prisma db push");
 }
@@ -85,4 +93,4 @@ async function finish() {
 const phase = process.argv[2];
 (phase === "archive" ? archive() : phase === "finish" ? finish() : Promise.reject(new Error("Usage: migrate-score-sheets.ts archive | finish")))
   .catch((e) => { console.error(e); process.exitCode = 1; })
-  .finally(() => db.$disconnect());
+  .finally(() => Promise.all([db.$disconnect(), direct.$disconnect()]));
