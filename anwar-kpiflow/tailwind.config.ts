@@ -21,12 +21,13 @@ export default {
         },
         // Neutrals carry a slight cool tint so white cards sit cleanly on the canvas
         surface: "#f6f6f8",
+        // 400 and 500 are text colours: both meet WCAG AA (4.5:1) on white and on the page background. 300 and lighter are for borders and decoration only.
         ink: {
           900: "#18181b",
           700: "#3a3a40",
-          500: "#6b6b74",
-          400: "#8a8a93",
-          300: "#b1b1b9",
+          500: "#55555e",
+          400: "#696973",
+          300: "#a0a0aa",
           200: "#dedee3",
           100: "#eeeef1",
         },

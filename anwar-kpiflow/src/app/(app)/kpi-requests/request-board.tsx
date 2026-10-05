@@ -178,7 +178,7 @@ export function RequestBoard({
                       <div className="text-[12px] text-ink-400">Quarter {quarterOfMonth(r.periodMonth)}</div>
                     </td>
                     <td className={cn(td, "text-right font-mono tnum whitespace-nowrap")}>{r.kpiScore === null ? (r.selfScore === null ? "—" : fmtNum(r.selfScore)) : fmtNum(r.kpiScore)}<span className="text-ink-400 text-[11.5px]"> / {KPI_SELF_MAX}</span></td>
-                    <td className={cn(td, "text-right font-mono tnum font-semibold")}>{r.totalScore === null ? <span className="text-ink-300 font-normal">—</span> : fmtNum(r.totalScore)}</td>
+                    <td className={cn(td, "text-right font-mono tnum font-semibold")}>{r.totalScore === null ? <span className="text-ink-400 font-normal">—</span> : fmtNum(r.totalScore)}</td>
                     {showPayment && <td className={cn(td, "text-right font-mono tnum")}>{money(r.paymentAmount)}</td>}
                     <td className={cn(td, "whitespace-nowrap text-ink-500 text-[12.5px]")}>{fmtDateTime(r.updatedAt)}</td>
                     <td className={cn(td, "pr-5 text-right sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgba(24,24,27,0.08)]")}>

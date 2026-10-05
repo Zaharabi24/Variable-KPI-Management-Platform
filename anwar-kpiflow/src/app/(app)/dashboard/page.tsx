@@ -112,7 +112,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <Td mono>{k.owner.employeeId}</Td>
                     <Td className="whitespace-nowrap">{MONTHS_SHORT[k.periodMonth - 1]} {k.periodYear}</Td>
                     <Td align="right" mono>{kpiScore === null ? "—" : fmtNum(kpiScore)}<span className="text-ink-400 text-[11.5px]"> / {KPI_SELF_MAX}</span></Td>
-                    <Td align="right" mono>{k.totalScore === null ? <span className="text-ink-300">—</span> : <span className={k.totalScore < 70 ? "text-red-600" : k.totalScore < 90 ? "text-amber-700" : "text-emerald-700"}>{fmtNum(k.totalScore)}</span>}</Td>
+                    <Td align="right" mono>{k.totalScore === null ? <span className="text-ink-400">—</span> : <span className={k.totalScore < 70 ? "text-red-600" : k.totalScore < 90 ? "text-amber-700" : "text-emerald-700"}>{fmtNum(k.totalScore)}</span>}</Td>
                     <Td><StatusBadge status={k.status} /></Td>
                     <Td align="right"><Link href={waiting ? `/kpi-requests?open=${k.id}` : `/my-kpi/${k.id}`} className="text-[13px] font-medium text-brand-700 hover:underline whitespace-nowrap">{waiting ? "Review →" : "Open →"}</Link></Td>
                   </tr>

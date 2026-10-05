@@ -98,8 +98,8 @@ export default async function AllKpisPage({ searchParams }: { searchParams: Prom
                   <Td className="whitespace-nowrap">{k.owner.department?.name ?? "—"}</Td>
                   <Td className="whitespace-nowrap">{MONTHS_SHORT[k.periodMonth - 1]} {k.periodYear}</Td>
                   <Td align="right" mono>{kpiScore === null ? "—" : fmtNum(kpiScore)}<span className="text-ink-400 text-[11.5px]"> / {KPI_SELF_MAX}</span></Td>
-                  <Td align="right" mono>{k.totalScore === null ? <span className="text-ink-300">—</span> : fmtNum(k.totalScore)}</Td>
-                  {superAdmin && <Td align="right" mono>{k.paymentAmount === null ? <span className="text-ink-300">—</span> : k.paymentAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Td>}
+                  <Td align="right" mono>{k.totalScore === null ? <span className="text-ink-400">—</span> : fmtNum(k.totalScore)}</Td>
+                  {superAdmin && <Td align="right" mono>{k.paymentAmount === null ? <span className="text-ink-400">—</span> : k.paymentAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Td>}
                   <Td><StatusBadge status={k.status} /></Td>
                   <Td className="whitespace-nowrap text-ink-700">{stage ? STAGE_LABELS[stage] : "—"}</Td>
                   <Td className="whitespace-nowrap">{k.approver?.fullName ?? "—"}</Td>

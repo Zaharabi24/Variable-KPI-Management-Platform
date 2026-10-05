@@ -44,7 +44,7 @@ export function MyKpiBoard({
                 <Plus className="h-7 w-7 text-brand-500" />
               </span>
               <span className="text-[15px] font-semibold">Create KPI</span>
-              <span className="text-[12.5px] text-brand-700/70 text-center max-w-[230px]">
+              <span className="text-[12.5px] text-brand-700 text-center max-w-[230px]">
                 Score your five major tasks for the month. Save as Draft or Submit to your Department Head.
               </span>
             </button>

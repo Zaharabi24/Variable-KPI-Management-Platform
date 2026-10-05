@@ -34,13 +34,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const history = k.history.map((h) => `<tr><td>${esc(DECISION_LABELS[h.decision] ?? h.decision)}</td><td>${esc(STAGE_LABELS[h.stage])}</td><td>${esc(h.by)}</td><td>${esc(when(h.at))}</td><td>${esc(h.reason ?? "—")}</td></tr>`).join("");
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>KPI ${esc(period)} · ${esc(k.owner.fullName)}</title>
-<style>body{font:14px/1.5 -apple-system,Segoe UI,Inter,sans-serif;color:#18181b;margin:40px;max-width:940px}h1{margin:0 0 4px;font-size:24px}h2{font-size:13px;margin:30px 0 10px;text-transform:uppercase;letter-spacing:.07em;color:#6b6b74}
-table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:9px 10px;border:1px solid #dedee3;vertical-align:top}th{background:#fafafb;color:#6b6b74;font-weight:600;font-size:12px}
-.mono{font-family:ui-monospace,Menlo,monospace}.r{text-align:right}.c{text-align:center;width:48px}.muted{color:#8a8a93}.total td{font-weight:700;background:#f6f6f8}
+<style>body{font:14px/1.5 -apple-system,Segoe UI,Inter,sans-serif;color:#18181b;margin:40px;max-width:940px}h1{margin:0 0 4px;font-size:24px}h2{font-size:13px;margin:30px 0 10px;text-transform:uppercase;letter-spacing:.07em;color:#55555e}
+table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:9px 10px;border:1px solid #dedee3;vertical-align:top}th{background:#fafafb;color:#55555e;font-weight:600;font-size:12px}
+.mono{font-family:ui-monospace,Menlo,monospace}.r{text-align:right}.c{text-align:center;width:48px}.muted{color:#696973}.total td{font-weight:700;background:#f6f6f8}
 .badge{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid #f7c6c5;background:#fdf3f3;color:#a62423;font-size:12px;font-weight:600;vertical-align:middle}
-.strip th{background:#c72c2b;color:#fff;text-align:center;font-size:12px}.strip th.hr{background:#047857}.strip th.total{background:#18181b}.strip td{text-align:center}.strip .max td{border-bottom:0;color:#6b6b74;font-size:12px}
-.step{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid #dedee3;font-size:12px;color:#8a8a93}.step.done{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}.step.current{background:#fffbeb;border-color:#fbbf24;color:#92400e;font-weight:600}.step.returned,.step.rejected{background:#fef2f2;border-color:#fca5a5;color:#b91c1c;font-weight:600}.arrow{margin:0 6px;color:#b1b1b9}
-.info td:first-child{width:200px;color:#6b6b74;background:#fafafb}@media print{body{margin:16px}}</style></head><body>
+.strip th{background:#c72c2b;color:#fff;text-align:center;font-size:12px}.strip th.hr{background:#047857}.strip th.total{background:#18181b}.strip td{text-align:center}.strip .max td{border-bottom:0;color:#55555e;font-size:12px}
+.step{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid #dedee3;font-size:12px;color:#696973}.step.done{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}.step.current{background:#fffbeb;border-color:#fbbf24;color:#92400e;font-weight:600}.step.returned,.step.rejected{background:#fef2f2;border-color:#fca5a5;color:#b91c1c;font-weight:600}.arrow{margin:0 6px;color:#a0a0aa}
+.info td:first-child{width:200px;color:#55555e;background:#fafafb}@media print{body{margin:16px}}</style></head><body>
 <div class="muted">Anwar KPIFlow · KPI report · generated ${esc(when(new Date()))} (Bangladesh time)</div>
 <h1>KPI · ${esc(period)} <span class="badge">${esc(STATUS_LABELS[k.status])}</span></h1>
 <div class="muted">${esc(k.owner.fullName)} · ${esc(k.owner.employeeId)} · ${esc(k.owner.department ?? "")} · ${esc(k.owner.businessUnit ?? "")}</div>

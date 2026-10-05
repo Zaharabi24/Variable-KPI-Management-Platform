@@ -68,7 +68,7 @@ function StepIcon({ state, icon, compact }: { state: StepState; icon: LucideIcon
         compact ? "h-7 w-7 rounded-lg" : "h-7 w-7 rounded-lg",
         state === "done" && "bg-ink-100 text-ink-700",
         state === "current" && "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-300",
-        state === "todo" && "border border-dashed border-ink-200 text-ink-300",
+        state === "todo" && "border border-dashed border-ink-200 text-ink-400",
         (state === "returned" || state === "rejected") && "bg-red-50 text-red-600 ring-1 ring-inset ring-red-200",
       )}
     >
@@ -104,7 +104,7 @@ export function RouteTracker({ status, className }: { status: KpiStatus; classNa
                   s === "current" && "bg-white text-amber-700 ring-2 ring-amber-400 shadow-[0_0_0_5px_rgba(251,191,36,0.16)]",
                   s === "returned" && "bg-white text-red-600 ring-2 ring-red-400 shadow-[0_0_0_5px_rgba(248,113,113,0.14)]",
                   s === "rejected" && "bg-red-600 text-white",
-                  s === "todo" && "bg-white text-ink-300 border border-dashed border-ink-300",
+                  s === "todo" && "bg-white text-ink-400 border border-dashed border-ink-300",
                 )}
               >
                 <Icon className="h-4 w-4" strokeWidth={s === "done" ? 3 : 2} />

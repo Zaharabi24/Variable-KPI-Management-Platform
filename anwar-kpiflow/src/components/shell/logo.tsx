@@ -24,7 +24,7 @@ export function Logo({ variant = "light", size = "md", className }: { variant?: 
         <div className={cn("font-semibold tracking-tight", size === "lg" ? "text-[18px]" : "text-[15px]", dark ? "text-white" : "text-ink-900")}>
           Anwar <span className={dark ? "text-white" : "text-brand-500"}>KPIFlow</span>
         </div>
-        <div className={cn("text-[10px] uppercase tracking-[0.14em]", dark ? "text-white/70" : "text-ink-400")}>ANWAR KPI</div>
+        <div className={cn("text-[10px] uppercase tracking-[0.14em]", dark ? "text-white/90" : "text-ink-400")}>ANWAR KPI</div>
       </div>
     </div>
   );

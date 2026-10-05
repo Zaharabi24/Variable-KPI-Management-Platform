@@ -51,8 +51,8 @@ export function ValueBarChart({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.map((d) => ({ ...d, value: d.value ?? 0, shown: d.value }))} margin={{ top: 8, right: 8, left: -10, bottom: long ? 28 : 0 }} barCategoryGap="28%">
                 <CartesianGrid vertical={false} stroke="#eeeef1" />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} interval={long ? 0 : "preserveStartEnd"} tick={{ fontSize: long ? 11 : 12, fill: "#6b6b74" }} angle={long ? -22 : 0} textAnchor={long ? "end" : "middle"} height={long ? 48 : 30} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#8a8a93" }} width={52} domain={max ? [0, max] : [0, "auto"]} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 100) / 10}k` : String(v))} />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} interval={long ? 0 : "preserveStartEnd"} tick={{ fontSize: long ? 11 : 12, fill: "#55555e" }} angle={long ? -22 : 0} textAnchor={long ? "end" : "middle"} height={long ? 48 : 30} />
+                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#696973" }} width={52} domain={max ? [0, max] : [0, "auto"]} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 100) / 10}k` : String(v))} />
                 <Tooltip
                   cursor={{ fill: "rgba(24,24,27,0.04)" }}
                   content={({ active, payload }) => {

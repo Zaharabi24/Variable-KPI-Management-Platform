@@ -21,7 +21,7 @@ export function MailTemplate({
     <article className="rounded-2xl border border-ink-900/[0.07] bg-white overflow-hidden shadow-card">
       <header className="bg-gradient-to-r from-brand-500 via-brand-600 to-brand-800 px-6 py-4 text-white">
         <div className="text-[15px] font-semibold tracking-tight">Anwar KPIFlow</div>
-        <div className="text-[11.5px] text-white/75">Anwar Group of Industries</div>
+        <div className="text-[11.5px] text-white/90">Anwar Group of Industries</div>
       </header>
       <div className="px-6 py-5">
         <h3 className="text-[17px] font-semibold text-ink-900 leading-6 break-words">{subject}</h3>

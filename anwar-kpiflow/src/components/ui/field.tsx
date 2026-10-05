@@ -58,7 +58,7 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
     };
     return (
       <select ref={setRef} defaultValue={defaultValue} className={cn("input pr-8 appearance-none bg-no-repeat bg-[right_0.6rem_center] bg-[length:16px]", invalid && "input-error", className)}
-        style={{ backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a8a93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")" }}
+        style={{ backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23696973' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")" }}
         aria-invalid={invalid || undefined} {...props}>
         {children}
       </select>

@@ -65,7 +65,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
             percentLabel={changePct === null ? undefined : `${changePct >= 0 ? "+" : "−"}${fmtNum(Math.abs(changePct), 1)}%`}
           />
         </StatTile>
-        <StatTile label="Approved KPIs" value={<>{m.approvedCount}<span className="text-ink-300">/</span>{m.totalCount}</>} hint="HR approved / submitted">
+        <StatTile label="Approved KPIs" value={<>{m.approvedCount}<span className="text-ink-400">/</span>{m.totalCount}</>} hint="HR approved / submitted">
           <MetricBar value={m.totalCount > 0 ? m.approvedCount : null} max={m.totalCount} caption="approved" tone="band" />
         </StatTile>
       </div>
@@ -114,8 +114,8 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
                         <div className="font-medium text-ink-900">{MONTHS[k.periodMonth - 1]} {k.periodYear}</div>
                         <div className="text-[12px] text-ink-500 whitespace-nowrap">{periodBreakdown(k)}</div>
                       </td>
-                      {KPI_CRITERIA.map((c) => <td key={c.key} className="px-3 py-3.5 border-b border-ink-100 text-right font-mono tnum">{k[c.key] === null ? <span className="text-ink-300">—</span> : fmtNum(k[c.key])}</td>)}
-                      <td className="px-3.5 py-3.5 border-b border-ink-100 text-right font-mono tnum font-semibold">{k.totalScore === null ? <span className="text-ink-300 font-normal">—</span> : fmtNum(k.totalScore)}</td>
+                      {KPI_CRITERIA.map((c) => <td key={c.key} className="px-3 py-3.5 border-b border-ink-100 text-right font-mono tnum">{k[c.key] === null ? <span className="text-ink-400">—</span> : fmtNum(k[c.key])}</td>)}
+                      <td className="px-3.5 py-3.5 border-b border-ink-100 text-right font-mono tnum font-semibold">{k.totalScore === null ? <span className="text-ink-400 font-normal">—</span> : fmtNum(k.totalScore)}</td>
                       <td className="px-3.5 py-3.5 border-b border-ink-100"><StatusBadge status={k.status} /></td>
                       <td className="pl-3 pr-5 py-3.5 border-b border-ink-100 text-right sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgba(24,24,27,0.08)]">
                         <Link href={`/my-kpi/${k.id}`} className="btn-outline h-8 px-3 text-[13px] whitespace-nowrap">View Details <ChevronRight className="h-4 w-4" /></Link>

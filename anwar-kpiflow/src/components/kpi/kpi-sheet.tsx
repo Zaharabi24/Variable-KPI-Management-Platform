@@ -133,7 +133,7 @@ export function BreakdownCard({
                         {errors[`task_${sl}`] && <p className="mt-1 text-[12px] text-red-600" role="alert">{errors[`task_${sl}`]}</p>}
                       </>
                     ) : (
-                      <div className="py-2 text-ink-900 font-medium break-words">{t.task || <span className="text-ink-300 font-normal">—</span>}</div>
+                      <div className="py-2 text-ink-900 font-medium break-words">{t.task || <span className="text-ink-400 font-normal">—</span>}</div>
                     )}
                   </td>
                   <td className="px-3 py-3 text-right">
@@ -151,7 +151,7 @@ export function BreakdownCard({
                     {editable ? (
                       <Input name={`tremarks_${sl}`} aria-label={`Remarks for task ${sl}`} value={t.remarks} onChange={(ev) => sheet.setTask(i, { remarks: ev.target.value })} invalid={!!errors[`tremarks_${sl}`]} maxLength={500} />
                     ) : (
-                      <div className="py-2 text-ink-700 break-words">{t.remarks || <span className="text-ink-300">—</span>}</div>
+                      <div className="py-2 text-ink-700 break-words">{t.remarks || <span className="text-ink-400">—</span>}</div>
                     )}
                   </td>
                 </tr>
@@ -211,7 +211,7 @@ export function ScoreStrip({
               className="h-9 font-mono text-center px-1.5" value={sheet.crit[key as keyof CritState]} onChange={(ev) => sheet.setCrit(key as keyof CritState, ev.target.value)} invalid={!!errors[key]} placeholder="0.00"
             />
           ) : (
-            <span className={cn("font-mono tnum text-[15px]", canSee && value !== null ? "text-ink-900 font-semibold" : "text-ink-300")}>{canSee ? show(key === "kpiScore" ? (value ?? sheet.runningKpi) : value) : "—"}</span>
+            <span className={cn("font-mono tnum text-[15px]", canSee && value !== null ? "text-ink-900 font-semibold" : "text-ink-400")}>{canSee ? show(key === "kpiScore" ? (value ?? sheet.runningKpi) : value) : "—"}</span>
           )}
         </div>
         {errors[key] && <p className="mt-1 text-[11.5px] text-red-600 text-center" role="alert">{errors[key]}</p>}
@@ -225,7 +225,7 @@ export function ScoreStrip({
         {edit.hr ? (
           <Textarea name={key} aria-label={label} value={sheet.hr[key]} onChange={(ev) => sheet.setHr(key, ev.target.value)} invalid={!!errors[key]} maxLength={2000} className="min-h-[64px] border-0 shadow-none focus:ring-0 px-2 py-1.5 text-[13.5px]" />
         ) : (
-          <p className={cn("text-[13.5px] whitespace-pre-wrap break-words", visible.hr && sheet.hr[key] ? "text-ink-900" : "text-ink-300")}>{visible.hr && sheet.hr[key] ? sheet.hr[key] : "—"}</p>
+          <p className={cn("text-[13.5px] whitespace-pre-wrap break-words", visible.hr && sheet.hr[key] ? "text-ink-900" : "text-ink-400")}>{visible.hr && sheet.hr[key] ? sheet.hr[key] : "—"}</p>
         )}
       </div>
       {errors[key] && <p className="mt-1 text-[11.5px] text-red-600" role="alert">{errors[key]}</p>}
@@ -245,7 +245,7 @@ export function ScoreStrip({
             <div className="text-center font-mono tnum text-[12.5px] text-ink-500 pb-1.5">{KPI_TOTAL_MAX}</div>
             <div className="rounded-t-lg bg-gradient-to-b from-ink-900 to-[#27272c] px-2 py-2 text-center text-[12px] font-semibold leading-4 text-white min-h-[48px] flex items-center justify-center">Total Score</div>
             <div className="rounded-b-lg border border-t-0 border-ink-200 bg-surface px-2 py-2 min-h-[58px] flex items-center justify-center" aria-live="polite">
-              <span className={cn("font-mono tnum text-[17px] font-semibold", visible.hr && total !== null ? "text-ink-900" : "text-ink-300")}>{visible.hr ? show(total) : "—"}</span>
+              <span className={cn("font-mono tnum text-[17px] font-semibold", visible.hr && total !== null ? "text-ink-900" : "text-ink-400")}>{visible.hr ? show(total) : "—"}</span>
             </div>
           </div>
         </div>
@@ -326,7 +326,7 @@ export function SheetMeta({ kpi }: { kpi: KpiView }) {
         </div>
         <div>
           <div className="text-[11.5px] text-ink-400 mb-1">Employee&apos;s Remarks</div>
-          <p className={cn("text-[13.5px] whitespace-pre-wrap break-words", kpi.remarks ? "text-ink-900" : "text-ink-300")}>{kpi.remarks || "—"}</p>
+          <p className={cn("text-[13.5px] whitespace-pre-wrap break-words", kpi.remarks ? "text-ink-900" : "text-ink-400")}>{kpi.remarks || "—"}</p>
         </div>
       </div>
     </Card>

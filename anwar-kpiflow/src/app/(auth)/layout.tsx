@@ -13,11 +13,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="absolute -bottom-40 -left-24 h-[380px] w-[380px] rounded-full bg-black/10 blur-3xl" aria-hidden />
         <div className="relative"><Logo variant="dark" size="lg" /></div>
         <div className="relative max-w-md">
-          <p className="text-[12px] uppercase tracking-[0.16em] text-white/75 mb-4">Variable KPI · Phase 01</p>
+          <p className="text-[12px] uppercase tracking-[0.16em] text-white/90 mb-4">Variable KPI · Phase 01</p>
           <h2 className="text-[34px] leading-[1.15] font-semibold tracking-tight">
             Every score traceable from submission to audit.
           </h2>
-          <p className="mt-4 text-[15px] text-white/80 leading-7">
+          <p className="mt-4 text-[15px] text-white/90 leading-7">
             One guided flow across all Anwar Group business units, with the status shown live at every step.
             Employee → Department Head → HR Admin → Finance Admin → Audit Admin.
           </p>
@@ -30,7 +30,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             ))}
           </ol>
         </div>
-        <p className="relative text-[12px] text-white/60">© {new Date().getFullYear()} Anwar Group of Industries · Anwar KPIFlow prototype</p>
+        <p className="relative text-[12px] text-white/90">© {new Date().getFullYear()} Anwar Group of Industries · Anwar KPIFlow prototype</p>
       </aside>
       <main className="flex flex-col bg-white">
         <div className="lg:hidden px-6 pt-6">

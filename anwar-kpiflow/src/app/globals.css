@@ -70,7 +70,7 @@
     @apply block text-[12px] font-medium text-ink-700 mb-1.5;
   }
   .input {
-    @apply w-full h-10 rounded-[10px] border border-ink-200 bg-white px-3 text-[14px] text-ink-900 shadow-field placeholder:text-ink-300 transition-[border-color,box-shadow] duration-150
+    @apply w-full h-10 rounded-[10px] border border-ink-200 bg-white px-3 text-[14px] text-ink-900 shadow-field placeholder:text-ink-400 transition-[border-color,box-shadow] duration-150
       hover:border-ink-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/[0.12] focus:outline-none disabled:bg-ink-100/60 disabled:text-ink-500 disabled:shadow-none disabled:cursor-not-allowed;
   }
   .input-error {
@@ -92,7 +92,7 @@
   }
   .mail-editor:empty::before {
     content: attr(data-placeholder);
-    @apply text-ink-300 pointer-events-none;
+    @apply text-ink-400 pointer-events-none;
   }
   .scroll-thin::-webkit-scrollbar {
     width: 8px;
