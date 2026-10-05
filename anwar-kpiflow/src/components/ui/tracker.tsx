@@ -25,8 +25,9 @@ export function trackerStates(status: string, scored = true): StepState[] {
 export function Tracker({ status, layout = "grid", className, scored }: { status: string; layout?: "grid" | "row"; className?: string; scored?: boolean }) {
   const states = trackerStates(status, scored);
   const grid = layout === "grid";
+  // Card layout: three content-sized columns spread across the card, so no label is ever cut short.
   return (
-    <ol className={cn(grid ? "grid grid-cols-3 gap-x-2" : "flex items-center justify-between", className)} aria-label="KPI progress">
+    <ol className={cn(grid ? "grid grid-cols-[auto_auto_auto] justify-between gap-x-2" : "flex items-center justify-between", className)} aria-label="KPI progress">
       {TRACKER_STEPS.map((label, i) => {
         const s = states[i];
         const last = i === TRACKER_STEPS.length - 1;
@@ -38,8 +39,8 @@ export function Tracker({ status, layout = "grid", className, scored }: { status
             <span
               title={text}
               className={cn(
-                "whitespace-nowrap min-w-0 truncate",
-                grid ? "ml-2 text-[12px]" : "ml-2 text-[12.5px]",
+                "whitespace-nowrap",
+                grid ? "ml-1.5 text-[12px]" : "ml-2 text-[12.5px]",
                 s === "done" && "text-ink-900 font-medium",
                 s === "current" && "text-amber-800 font-semibold",
                 s === "todo" && "text-ink-400",
@@ -65,14 +66,14 @@ function StepIcon({ state, icon, compact }: { state: StepState; icon: LucideIcon
       aria-hidden
       className={cn(
         "shrink-0 flex items-center justify-center",
-        compact ? "h-7 w-7 rounded-lg" : "h-7 w-7 rounded-lg",
+        compact ? "h-6 w-6 rounded-md" : "h-7 w-7 rounded-lg",
         state === "done" && "bg-ink-100 text-ink-700",
         state === "current" && "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-300",
         state === "todo" && "border border-dashed border-ink-200 text-ink-400",
         (state === "returned" || state === "rejected") && "bg-red-50 text-red-600 ring-1 ring-inset ring-red-200",
       )}
     >
-      <Icon className="h-4 w-4" strokeWidth={2} />
+      <Icon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} strokeWidth={2} />
     </span>
   );
 }
