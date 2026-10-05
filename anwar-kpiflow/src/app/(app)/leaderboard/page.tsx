@@ -26,7 +26,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
     <>
       <PageHeader
         title="Leaderboard"
-        subtitle={`${deptName ?? "Department"} · ranked by Average Achievement · ${period.label}`}
+        subtitle={`${deptName ?? "Department"} · ranked by KPI Total Score · ${period.label}`}
         action={
           <div className="flex flex-wrap items-center gap-2">
             {superAdmin && <DepartmentPicker departments={departments} value={deptId ?? ""} allLabel={null} />}
@@ -37,10 +37,10 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
       <Card>
         <CardHeader
           title="Department ranking"
-          subtitle={`Approved and Adjusted KPIs only · bands: high ≥ ${LEADERBOARD_BANDS.high}% · middle ≥ ${LEADERBOARD_BANDS.middle}% · low below`}
+          subtitle={`HR-approved KPIs only · bands: high ≥ ${LEADERBOARD_BANDS.high} · middle ≥ ${LEADERBOARD_BANDS.middle} · low below`}
         />
         {rows.length === 0 ? (
-          <EmptyState icon={<Trophy className="h-5 w-5" />} title="No ranked employees yet" description={`No employee in ${deptName ?? "this department"} has an approved KPI in ${period.label}.`} />
+          <EmptyState icon={<Trophy className="h-5 w-5" />} title="No ranked employees yet" description={`No employee in ${deptName ?? "this department"} has an HR-approved KPI in ${period.label}.`} />
         ) : (
           <ol className="px-5 pb-5 grid gap-y-5">
             {rows.map((r) => {
@@ -57,10 +57,10 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                         <div className="text-[14px] font-semibold text-ink-900 truncate">{r.name}</div>
                         <div className="text-[12px] text-ink-500 truncate">{r.designation} · {r.kpiCount} approved KPI{r.kpiCount === 1 ? "" : "s"}</div>
                       </div>
-                      <div className={cn("font-mono tnum text-[15px] font-semibold", color)}>{r.achievement.toFixed(1)}%</div>
+                      <div className={cn("font-mono tnum text-[15px] font-semibold", color)}>{r.score.toFixed(2)}</div>
                     </div>
-                    <div className="mt-2 h-2 w-full rounded-full bg-ink-100 overflow-hidden" role="progressbar" aria-valuenow={Math.min(100, r.achievement)} aria-valuemin={0} aria-valuemax={100} aria-label={`${r.name} achievement`}>
-                      <div className={cn("h-full rounded-full", bar)} style={{ width: `${Math.min(100, r.achievement)}%` }} />
+                    <div className="mt-2 h-2 w-full rounded-full bg-ink-100 overflow-hidden" role="progressbar" aria-valuenow={Math.min(100, r.score)} aria-valuemin={0} aria-valuemax={100} aria-label={`${r.name} KPI Total Score`}>
+                      <div className={cn("h-full rounded-full", bar)} style={{ width: `${Math.min(100, r.score)}%` }} />
                     </div>
                   </div>
                 </li>

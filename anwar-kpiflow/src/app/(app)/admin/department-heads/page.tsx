@@ -13,7 +13,7 @@ export default async function DepartmentHeadsPage() {
   const [heads, units, departments] = await Promise.all([
     db.user.findMany({
       where: { role: ROLES.DEPARTMENT_HEAD },
-      include: { businessUnit: true, department: true, tokens: { where: { type: "INVITATION" }, orderBy: { createdAt: "desc" }, take: 1 }, _count: { select: { approvingKpis: { where: { status: "SUBMITTED", deletedAt: null } } } } },
+      include: { businessUnit: true, department: true, tokens: { where: { type: "INVITATION" }, orderBy: { createdAt: "desc" }, take: 1 }, _count: { select: { approvingKpis: { where: { status: { in: ["SUBMITTED", "RETURNED_TO_HEAD"] }, deletedAt: null } } } } },
       orderBy: [{ department: { name: "asc" } }, { fullName: "asc" }],
     }),
     db.businessUnit.findMany({ orderBy: { name: "asc" } }),

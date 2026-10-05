@@ -10,7 +10,7 @@ import { fmtDateTime, titleCase } from "@/lib/utils";
 export const metadata: Metadata = { title: "Audit Trail" };
 
 export default async function AuditPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireRole(ROLES.SUPER_ADMIN);
+  await requireRole(ROLES.SUPER_ADMIN, ROLES.AUDIT_ADMIN);
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
   const take = 60;

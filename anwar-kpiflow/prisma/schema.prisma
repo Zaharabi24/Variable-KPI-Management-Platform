@@ -29,7 +29,7 @@ model User {
   fullName       String
   email          String        @unique
   employeeId     String        @unique
-  role           String // SUPER_ADMIN | DEPARTMENT_HEAD | EMPLOYEE
+  role           String // SUPER_ADMIN | SYSTEM_ADMIN | DEPARTMENT_HEAD | HR_ADMIN | FINANCE_ADMIN | AUDIT_ADMIN | EMPLOYEE
   designation    String?
   corporatePhone String?
   passwordHash   String?
@@ -52,16 +52,11 @@ model User {
   auditLogs       AuditLog[]
   evidenceFiles   EvidenceFile[]
 
-  // Variable Pay
-  dateOfJoining       DateTime? // DOJ
-  variablePayEligible Boolean   @default(false)
-  supervisorName      String?
-  vpEvaluations       VariablePayEvaluation[] @relation("VpEmployee")
-  vpEvaluated         VariablePayEvaluation[] @relation("VpEvaluator")
-  vpHrNotes           VariablePayEvaluation[] @relation("VpHrNoteBy")
-  vpDecided           VariablePayEvaluation[] @relation("VpDecidedBy")
-  vpPaymentsConfirmed VariablePayEvaluation[] @relation("VpPaymentBy")
-  vpEvents            VariablePayEvent[]
+  // KPI approval chain: the decisions this user recorded at each stage
+  kpiDeptDecisions    Kpi[] @relation("KpiDeptDecidedBy")
+  kpiHrDecisions      Kpi[] @relation("KpiHrDecidedBy")
+  kpiFinanceDecisions Kpi[] @relation("KpiFinanceDecidedBy")
+  kpiAuditDecisions   Kpi[] @relation("KpiAuditDecidedBy")
 
   // Mailbox
   sentMail     MailMessage[]   @relation("MailSender")
@@ -81,40 +76,87 @@ model AccountToken {
   createdAt   DateTime  @default(now())
 }
 
+/// A KPI is one employee's monthly score sheet (the "KPI Score Break Down" plus the score strip).
+/// Approval chain: Employee -> Department Head -> HR Admin -> Finance Admin -> Audit Admin.
+/// Who fills what, the maxima and the status machine live in lib/kpi.ts.
 model Kpi {
-  id              String    @id @default(cuid())
-  name            String
-  category        String // PROJECT | PEOPLE_CULTURE
-  kpiType         String    @default("VARIABLE")
-  periodYear      Int
-  periodMonth     Int
-  target          Float
-  actual          Float
-  unit            String    @default("")
-  weight          Float
-  achievement     Float
-  calculatedScore Float
-  finalScore      Float?
-  status          String // DRAFT | SUBMITTED | RETURNED | APPROVED | ADJUSTED | REJECTED
-  remarks         String
-  dataSource      String    @default("verified_manual")
-  ownerId         String
-  owner           User      @relation("KpiOwner", fields: [ownerId], references: [id])
-  approverId      String?
-  approver        User?     @relation("KpiApprover", fields: [approverId], references: [id])
-  currentVersion  Int       @default(1)
-  returnRemarks   String?
-  decisionReason  String?
-  decidedAt       DateTime?
-  submittedAt     DateTime  @default(now())
-  deletedAt       DateTime?
-  deleteReason    String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id          String @id @default(cuid())
+  periodYear  Int
+  periodMonth Int
+  status      String // see KPI_STATUS in lib/kpi.ts
 
+  // Employee
+  remarks   String @default("") @db.Text
+  selfScore Float? // sum of the five task scores as the employee submitted them (out of 50)
+
+  // Department Head (KPI (5) is the sum of the task scores after their review)
+  kpiScore               Float? // 50
+  qualityOfWork          Float? // 15
+  timelineOfDeliverables Float? // 20
+  stakeholderPeerReview  Float? // 5
+  adjusted               Boolean @default(false) // the Department Head changed the employee's breakdown
+  adjustReason           String? @db.Text
+
+  // HR Admin
+  attendance    Float? // 10
+  hrRemarks     String? @db.Text
+  hrNote        String? @db.Text
+  paymentAmount Float? // never shown to the employee or the Department Head
+  totalScore    Float? // 100, set when HR approves
+
+  // Finance Admin / Audit Admin
+  financeNote String? @db.Text
+  auditNote   String? @db.Text
+
+  ownerId    String
+  owner      User    @relation("KpiOwner", fields: [ownerId], references: [id])
+  approverId String?
+  approver   User?   @relation("KpiApprover", fields: [approverId], references: [id])
+
+  currentVersion Int      @default(0)
+  returnRemarks  String?  @db.Text // why it was last sent back, at whichever stage
+  decisionReason String?  @db.Text // rejection reason
+  submittedAt    DateTime @default(now())
+
+  deptDecidedAt      DateTime?
+  deptDecidedById    String?
+  deptDecidedBy      User?     @relation("KpiDeptDecidedBy", fields: [deptDecidedById], references: [id])
+  hrDecidedAt        DateTime?
+  hrDecidedById      String?
+  hrDecidedBy        User?     @relation("KpiHrDecidedBy", fields: [hrDecidedById], references: [id])
+  financeDecidedAt   DateTime?
+  financeDecidedById String?
+  financeDecidedBy   User?     @relation("KpiFinanceDecidedBy", fields: [financeDecidedById], references: [id])
+  auditDecidedAt     DateTime?
+  auditDecidedById   String?
+  auditDecidedBy     User?     @relation("KpiAuditDecidedBy", fields: [auditDecidedById], references: [id])
+
+  deletedAt    DateTime?
+  deleteReason String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tasks     KpiTask[]
   evidence  EvidenceFile[]
   versions  KpiVersion[]
   decisions ReviewDecision[]
+
+  @@index([ownerId, periodYear, periodMonth])
+  @@index([status])
+}
+
+/// "KPI Score Break Down": 5 Major Tasks, each scored out of 10.
+model KpiTask {
+  id            String @id @default(cuid())
+  kpiId         String
+  kpi           Kpi    @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  sl            Int // 1..5
+  task          String @default("")
+  employeeScore Float? // as the employee submitted it
+  score         Float? // current score (the Department Head may adjust it)
+  remarks       String @default("")
+
+  @@unique([kpiId, sl])
 }
 
 model EvidenceFile {
@@ -137,9 +179,9 @@ model KpiVersion {
   kpiId       String
   kpi         Kpi      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
   versionNo   Int
-  action      String // DRAFT | SUBMIT | RESUBMIT | APPROVE | ADJUST | RETURN | REJECT | EDIT | DELETE | TARGET_CHANGE
-  snapshot    String @db.Text // JSON of the KPI record after the action
-  changes     String @db.Text // JSON array of { field, oldValue, newValue }
+  action      String // SUBMIT | RESUBMIT | DEPT_APPROVE | DEPT_ADJUST | DEPT_RETURN | DEPT_REJECT | HR_APPROVE | HR_RETURN | FINANCE_APPROVE | FINANCE_RETURN | AUDIT_APPROVE | AUDIT_RETURN | DELETE
+  snapshot    String   @db.Text // JSON of the KPI record after the action
+  changes     String   @db.Text // JSON array of { field, oldValue, newValue }
   reason      String?
   changedById String
   changedBy   User     @relation(fields: [changedById], references: [id])
@@ -154,7 +196,8 @@ model ReviewDecision {
   kpi        Kpi      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
   reviewerId String
   reviewer   User     @relation(fields: [reviewerId], references: [id])
-  decision   String // APPROVE | ADJUST | RETURN | REJECT | EDIT | DELETE
+  stage      String   @default("DEPT") // EMPLOYEE | DEPT | HR | FINANCE | AUDIT
+  decision   String // same vocabulary as KpiVersion.action
   reason     String?
   createdAt  DateTime @default(now())
 }
@@ -230,95 +273,4 @@ model MailAttachment {
 model Setting {
   key   String @id
   value String
-}
-
-/// Monthly Variable Pay evaluation of one eligible employee by their Department Head.
-/// Employee details are snapshotted on every save so a submitted record stays reproducible.
-model VariablePayEvaluation {
-  id          String @id @default(cuid())
-  employeeId  String
-  employee    User   @relation("VpEmployee", fields: [employeeId], references: [id])
-  evaluatorId String
-  evaluator   User   @relation("VpEvaluator", fields: [evaluatorId], references: [id])
-  periodYear  Int
-  periodMonth Int
-  status      String @default("DRAFT") // DRAFT | SUBMITTED | RETURNED | APPROVED | REJECTED | PAYMENT_CONFIRMED
-
-  // Snapshot of the "Individual" columns
-  empCode        String // ID
-  empName        String // Name
-  doj            DateTime? // DOJ
-  days           Int? // Days
-  tenure         String? // Tenure
-  designation    String? // Designation
-  departmentName String? // Department
-  departmentId   String?
-  supervisor     String? // Supervisor
-
-  // Scores (maxima in lib/variable-pay.ts): KPI (5) 50, Quality of work 15, Time Line of Deliverables 20, Stakeholder & Peer Review 5, Attendance 10
-  kpiScore               Float?
-  qualityOfWork          Float?
-  timelineOfDeliverables Float?
-  stakeholderPeerReview  Float?
-  attendance             Float?
-  totalScore             Float?
-
-  remarks      String?   @db.Text // Remarks
-  hrNote       String?   @db.Text // HR Note
-  hrNoteById   String?
-  hrNoteBy     User?     @relation("VpHrNoteBy", fields: [hrNoteById], references: [id])
-  hrNoteAt     DateTime?
-  returnReason String?   @db.Text
-  submittedAt  DateTime? // exact time of the latest submission
-
-  // Super Admin decision (approve / return / reject)
-  decidedById     String?
-  decidedBy       User?     @relation("VpDecidedBy", fields: [decidedById], references: [id])
-  decidedAt       DateTime?
-  decisionComment String?   @db.Text
-
-  // Finance: confirmed payment
-  paymentAmount        Float?
-  paymentReference     String?
-  paymentNote          String?   @db.Text
-  paymentConfirmedById String?
-  paymentConfirmedBy   User?     @relation("VpPaymentBy", fields: [paymentConfirmedById], references: [id])
-  paymentConfirmedAt   DateTime?
-
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  tasks  VariablePayTask[]
-  events VariablePayEvent[]
-
-  @@unique([employeeId, periodYear, periodMonth])
-  @@index([periodYear, periodMonth, departmentId])
-  @@index([status, submittedAt])
-}
-
-/// "KPI Score Break Down": 5 Major Tasks, each scored out of 10.
-model VariablePayTask {
-  id           String                @id @default(cuid())
-  evaluationId String
-  evaluation   VariablePayEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
-  sl           Int // SL.
-  task         String                @db.Text // 5 Major Tasks
-  score        Float? // Score (Out of 10 for Each)
-  remarks      String?               @db.Text // Remarks
-
-  @@unique([evaluationId, sl])
-}
-
-/// Append-only workflow history of a Variable Pay request: who did what, when, with which comment.
-model VariablePayEvent {
-  id           String                @id @default(cuid())
-  evaluationId String
-  evaluation   VariablePayEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
-  action       String // SUBMITTED | RESUBMITTED | APPROVED | RETURNED | REJECTED | HR_NOTE | PAYMENT_CONFIRMED
-  actorId      String
-  actor        User                  @relation(fields: [actorId], references: [id])
-  comment      String?               @db.Text
-  createdAt    DateTime              @default(now())
-
-  @@index([evaluationId, createdAt])
 }

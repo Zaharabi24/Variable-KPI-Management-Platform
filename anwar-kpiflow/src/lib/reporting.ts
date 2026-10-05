@@ -1,13 +1,13 @@
 import { db } from "./db";
-import {
-  averageAchievement, inPeriod, isCounted, periodNoun, periodRange, previousPeriod, quarterOf, round2, totalKpiScore,
-  type PeriodRange, type PeriodType,
-} from "./calc";
-import { LEADERBOARD_BANDS, ROLES } from "./constants";
+import { periodNoun, periodRange, previousPeriod, quarterOf, round2, type PeriodRange, type PeriodType } from "./calc";
+import { LEADERBOARD_BANDS, MONTHS_SHORT, ROLES } from "./constants";
+import { KPI_STATUS, SCORED_STATUSES, STAGE_STATUSES, isPastDept, isScored, type KpiStatus } from "./kpi";
+import { kpiInclude, toView, type Viewer } from "./kpi-data";
 
-/** Reporting service (Section 11.4 / 11.5) — reads use the calculation service only. */
-
-export type PeriodQuery = { type: PeriodType; year: number; index: number };
+/**
+ * Reporting — summaries, dashboards and the leaderboard.
+ * A KPI counts towards a score once the HR Admin has approved it (its Total Score out of 100 exists).
+ */
 
 export function parsePeriod(sp: Record<string, string | string[] | undefined>, now = new Date()): PeriodRange {
   const bdNow = new Date(now.getTime() + 6 * 3600 * 1000);
@@ -28,31 +28,37 @@ export function periodToQuery(p: PeriodRange): Record<string, string> {
   };
 }
 
-export async function performanceSummary(userId: string, p: PeriodRange) {
+const inRange = (p: PeriodRange) => ({ periodYear: p.year, periodMonth: { gte: p.fromMonth, lte: p.toMonth } });
+const mean = (values: number[]): number | null => (values.length ? round2(values.reduce((a, b) => a + b, 0) / values.length) : null);
+type Scored = { status: string; totalScore: number | null };
+/** Average Total Score over the KPIs the HR Admin has approved. */
+export function averageScore(items: Scored[]): number | null {
+  return mean(items.filter((k) => isScored(k.status) && k.totalScore !== null).map((k) => k.totalScore as number));
+}
+
+/* ---------- Employee: Performance Summary ---------- */
+
+export async function performanceSummary(viewer: Viewer, p: PeriodRange) {
   const prev = previousPeriod(p);
-  const all = await db.kpi.findMany({
-    where: { ownerId: userId, deletedAt: null, status: { not: "DRAFT" }, periodYear: { in: [p.year, prev.year] } },
-    include: { approver: true, evidence: { omit: { data: true } } },
-    orderBy: [{ periodMonth: "asc" }, { submittedAt: "asc" }],
-  });
-  const current = all.filter((k) => inPeriod(k, p));
-  const previous = all.filter((k) => inPeriod(k, prev));
-  const total = totalKpiScore(current);
-  const prevTotal = totalKpiScore(previous);
+  const base = { ownerId: viewer.id, deletedAt: null, status: { not: KPI_STATUS.DRAFT } };
+  const [current, previous] = await Promise.all([
+    db.kpi.findMany({ where: { ...base, ...inRange(p) }, include: kpiInclude, orderBy: [{ periodYear: "asc" }, { periodMonth: "asc" }] }),
+    db.kpi.findMany({ where: { ...base, ...inRange(prev) }, select: { status: true, totalScore: true } }),
+  ]);
+  const total = averageScore(current);
+  const prevTotal = averageScore(previous);
   const diff = total !== null && prevTotal !== null ? round2(total - prevTotal) : null;
-  const approved = current.filter((k) => isCounted(k.status)).length;
   return {
     period: p,
     previous: prev,
-    kpis: current,
+    /** Approved records only: the ones whose Total Score exists. */
+    records: current.filter((k) => isScored(k.status)).map((k) => toView(k, viewer)),
     metrics: {
       totalKpiScore: total,
-      averageAchievement: averageAchievement(current),
       previousKpiScore: prevTotal,
       difference: diff,
-      differenceText:
-        diff === null ? null : `${Math.abs(diff)} ${diff >= 0 ? "above" : "below"} the previous ${periodNoun(p.type)}`,
-      approvedCount: approved,
+      differenceText: diff === null ? null : `${Math.abs(diff)} ${diff >= 0 ? "above" : "below"} the previous ${periodNoun(p.type)}`,
+      approvedCount: current.filter((k) => isScored(k.status)).length,
       totalCount: current.length,
     },
   };
@@ -61,91 +67,66 @@ export async function performanceSummary(userId: string, p: PeriodRange) {
 /** Bar-chart series: monthly (12 months of the year), quarterly (4), yearly (last 3 years). */
 export async function chartSeries(userId: string, year: number) {
   const kpis = await db.kpi.findMany({
-    where: { ownerId: userId, deletedAt: null, status: { not: "DRAFT" }, periodYear: { gte: year - 2, lte: year } },
+    where: { ownerId: userId, deletedAt: null, status: { in: SCORED_STATUSES }, periodYear: { gte: year - 2, lte: year } },
+    select: { periodYear: true, periodMonth: true, status: true, totalScore: true },
   });
-  const monthly = Array.from({ length: 12 }, (_, i) => {
-    const items = kpis.filter((k) => k.periodYear === year && k.periodMonth === i + 1);
-    return { label: MONTHS_SHORT[i], value: totalKpiScore(items), count: items.filter((k) => isCounted(k.status)).length };
-  });
-  const quarterly = Array.from({ length: 4 }, (_, q) => {
-    const items = kpis.filter((k) => k.periodYear === year && quarterOf(k.periodMonth) === q + 1);
-    return { label: `Q${q + 1}`, value: totalKpiScore(items), count: items.filter((k) => isCounted(k.status)).length };
-  });
-  const yearly = [year - 2, year - 1, year].map((y) => {
-    const items = kpis.filter((k) => k.periodYear === y);
-    return { label: String(y), value: totalKpiScore(items), count: items.filter((k) => isCounted(k.status)).length };
-  });
-  return { monthly, quarterly, yearly };
-}
-
-/** Department dashboard (Section 11.5). departmentId = null means all departments (Super Admin). */
-export async function departmentDashboard(departmentId: string | null, p: PeriodRange) {
-  const employees = await db.user.findMany({
-    where: {
-      role: { in: [ROLES.EMPLOYEE, ROLES.DEPARTMENT_HEAD] },
-      ...(departmentId ? { departmentId } : {}),
-      status: { not: "DEACTIVATED" },
-    },
-    include: { department: true },
-  });
-  const ids = employees.map((e) => e.id);
-  const kpis = await db.kpi.findMany({
-    where: { ownerId: { in: ids }, deletedAt: null, status: { not: "DRAFT" }, periodYear: p.year, periodMonth: { gte: p.fromMonth, lte: p.toMonth } },
-    include: { owner: { include: { department: true } } },
-    orderBy: { submittedAt: "asc" },
-  });
-  // Department average = average of each employee's Average Achievement (11.5)
-  const perEmployee = employees
-    .map((e) => averageAchievement(kpis.filter((k) => k.ownerId === e.id)))
-    .filter((v): v is number => v !== null);
-  const avg = perEmployee.length ? round2(perEmployee.reduce((a, b) => a + b, 0) / perEmployee.length) : null;
+  const point = (label: string, items: typeof kpis) => ({ label, value: averageScore(items), count: items.length });
   return {
-    period: p,
-    employees,
-    kpis,
-    averageAchievement: avg,
-    pending: kpis.filter((k) => k.status === "SUBMITTED").length,
-    approved: kpis.filter((k) => isCounted(k.status)).length,
-    rejected: kpis.filter((k) => k.status === "REJECTED").length,
-    returned: kpis.filter((k) => k.status === "RETURNED").length,
-    belowTarget: kpis.filter((k) => k.actual < k.target).sort((a, b) => a.achievement - b.achievement),
+    monthly: MONTHS_SHORT.map((m, i) => point(m, kpis.filter((k) => k.periodYear === year && k.periodMonth === i + 1))),
+    quarterly: [1, 2, 3, 4].map((q) => point(`Q${q}`, kpis.filter((k) => k.periodYear === year && quarterOf(k.periodMonth) === q))),
+    yearly: [year - 2, year - 1, year].map((y) => point(String(y), kpis.filter((k) => k.periodYear === y))),
   };
 }
 
-export type LeaderboardRow = {
-  rank: number;
-  userId: string;
-  name: string;
-  designation: string;
-  employeeId: string;
-  achievement: number;
-  band: "high" | "middle" | "low";
-  kpiCount: number;
-};
+/* ---------- Department Head / Super Admin dashboard ---------- */
 
-/** Leaderboard (FR-LB / 11.5): ranked by Average Achievement, ties share a rank, alphabetical within tie. */
-export async function departmentLeaderboard(departmentId: string, p: PeriodRange): Promise<LeaderboardRow[]> {
-  const employees = await db.user.findMany({
-    where: { departmentId, role: ROLES.EMPLOYEE, status: { not: "DEACTIVATED" } },
+/** departmentId = null means all departments (Super Admin). */
+export async function departmentDashboard(viewer: Viewer, departmentId: string | null, p: PeriodRange) {
+  const employees = await db.user.count({
+    where: { role: { in: [ROLES.EMPLOYEE, ROLES.DEPARTMENT_HEAD] }, ...(departmentId ? { departmentId } : {}), status: { not: "DEACTIVATED" } },
   });
+  const rows = await db.kpi.findMany({
+    where: { deletedAt: null, status: { not: KPI_STATUS.DRAFT }, ...inRange(p), owner: { role: { in: [ROLES.EMPLOYEE, ROLES.DEPARTMENT_HEAD] }, ...(departmentId ? { departmentId } : {}) } },
+    include: kpiInclude,
+    orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }, { updatedAt: "desc" }],
+  });
+  const count = (...s: KpiStatus[]) => rows.filter((k) => (s as string[]).includes(k.status)).length;
+  return {
+    period: p,
+    employees,
+    kpis: rows.map((k) => toView(k, viewer)),
+    averageKpiScore: averageScore(rows),
+    pending: count(...STAGE_STATUSES.DEPT),
+    approved: rows.filter((k) => isPastDept(k.status)).length,
+    rejected: count(KPI_STATUS.REJECTED),
+    returned: count(KPI_STATUS.RETURNED),
+  };
+}
+
+/* ---------- Leaderboard ---------- */
+
+export type LeaderboardRow = { rank: number; userId: string; name: string; designation: string; employeeId: string; score: number; band: "high" | "middle" | "low"; kpiCount: number };
+
+/** Ranked by average Total Score; ties share a rank, alphabetical within a tie. */
+export async function departmentLeaderboard(departmentId: string, p: PeriodRange): Promise<LeaderboardRow[]> {
+  const employees = await db.user.findMany({ where: { departmentId, role: ROLES.EMPLOYEE, status: { not: "DEACTIVATED" } } });
   const kpis = await db.kpi.findMany({
-    where: { ownerId: { in: employees.map((e) => e.id) }, deletedAt: null, status: { not: "DRAFT" }, periodYear: p.year, periodMonth: { gte: p.fromMonth, lte: p.toMonth } },
+    where: { ownerId: { in: employees.map((e) => e.id) }, deletedAt: null, status: { in: SCORED_STATUSES }, ...inRange(p) },
+    select: { ownerId: true, status: true, totalScore: true },
   });
   const rows = employees
     .map((e) => {
       const mine = kpis.filter((k) => k.ownerId === e.id);
-      const a = averageAchievement(mine);
-      return a === null
-        ? null
-        : { userId: e.id, name: e.fullName, designation: e.designation ?? "Employee", employeeId: e.employeeId, achievement: a, kpiCount: mine.filter((k) => isCounted(k.status)).length };
+      const score = averageScore(mine);
+      return score === null ? null : { userId: e.id, name: e.fullName, designation: e.designation ?? "Employee", employeeId: e.employeeId, score, kpiCount: mine.length };
     })
     .filter((r): r is NonNullable<typeof r> => r !== null)
-    .sort((x, y) => y.achievement - x.achievement || x.name.localeCompare(y.name));
+    .sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
   let rank = 0;
   let last: number | null = null;
   return rows.map((r, i) => {
-    if (last === null || r.achievement !== last) { rank = i + 1; last = r.achievement; }
-    return { ...r, rank, band: bandFor(r.achievement) };
+    if (last === null || r.score !== last) { rank = i + 1; last = r.score; }
+    return { ...r, rank, band: bandFor(r.score) };
   });
 }
 
@@ -155,4 +136,78 @@ export function bandFor(a: number): "high" | "middle" | "low" {
   return "low";
 }
 
-const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/* ---------- HR Admin, Finance Admin and Audit Admin dashboards ---------- */
+
+export type AdminStage = "HR" | "FINANCE" | "AUDIT";
+export type ChartPoint = { label: string; value: number | null; count: number };
+
+const STAGE_VIEW: Record<AdminStage, { received: KpiStatus[]; approved: KpiStatus[]; returned: KpiStatus }> = {
+  HR: {
+    received: [KPI_STATUS.DEPT_APPROVED, KPI_STATUS.RETURNED_TO_HR, KPI_STATUS.RETURNED_TO_HEAD, ...SCORED_STATUSES],
+    approved: SCORED_STATUSES,
+    returned: KPI_STATUS.RETURNED_TO_HEAD,
+  },
+  FINANCE: {
+    received: [KPI_STATUS.HR_APPROVED, KPI_STATUS.RETURNED_TO_FINANCE, KPI_STATUS.RETURNED_TO_HR, KPI_STATUS.FINANCE_APPROVED, KPI_STATUS.COMPLETED],
+    approved: [KPI_STATUS.FINANCE_APPROVED, KPI_STATUS.COMPLETED],
+    returned: KPI_STATUS.RETURNED_TO_HR,
+  },
+  AUDIT: {
+    received: [KPI_STATUS.FINANCE_APPROVED, KPI_STATUS.RETURNED_TO_FINANCE, KPI_STATUS.COMPLETED],
+    approved: [KPI_STATUS.COMPLETED],
+    returned: KPI_STATUS.RETURNED_TO_FINANCE,
+  },
+};
+
+/**
+ * One dashboard shape for the three admin stages, for a period and optional Business Unit / Department.
+ * "Received" is everything that has reached the stage; payments are summed over what the stage has approved.
+ */
+export async function stageDashboard(stage: AdminStage, p: PeriodRange, f: { bu: string; dept: string }) {
+  const view = STAGE_VIEW[stage];
+  const owner = { ...(f.dept ? { departmentId: f.dept } : {}), ...(f.bu ? { businessUnitId: f.bu } : {}) };
+  const select = { status: true, totalScore: true, paymentAmount: true, periodMonth: true, periodYear: true, owner: { select: { department: { select: { name: true } }, businessUnit: { select: { name: true } } } } } as const;
+  const [rows, yearRows, pipeline] = await Promise.all([
+    db.kpi.findMany({ where: { deletedAt: null, status: { in: view.received }, ...inRange(p), owner }, select }),
+    // The trend always covers the whole year of the selected period.
+    db.kpi.findMany({ where: { deletedAt: null, status: { in: view.received }, periodYear: p.year, owner }, select }),
+    db.kpi.groupBy({ by: ["status"], where: { deletedAt: null, status: { not: KPI_STATUS.DRAFT }, ...inRange(p), owner }, _count: true }),
+  ]);
+  const has = (list: KpiStatus[], s: string) => (list as string[]).includes(s);
+  const approved = rows.filter((k) => has(view.approved, k.status));
+  const pay = (items: typeof rows) => round2(items.reduce((a, k) => a + (k.paymentAmount ?? 0), 0));
+  const group = (key: (k: (typeof rows)[number]) => string) => {
+    const map = new Map<string, typeof rows>();
+    for (const k of rows) map.set(key(k), [...(map.get(key(k)) ?? []), k]);
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  };
+  const stageCount = (statuses: KpiStatus[]) => pipeline.filter((g) => has(statuses, g.status)).reduce((a, g) => a + g._count, 0);
+
+  return {
+    stage,
+    period: p,
+    received: rows.length,
+    awaiting: rows.filter((k) => has(STAGE_STATUSES[stage], k.status)).length,
+    approved: approved.length,
+    returned: rows.filter((k) => k.status === view.returned).length,
+    completed: rows.filter((k) => k.status === KPI_STATUS.COMPLETED).length,
+    averageScore: averageScore(rows),
+    payment: pay(approved),
+    byDepartment: group((k) => k.owner.department?.name ?? "No department").map<ChartPoint & { payment: number }>(([label, items]) => ({ label, value: averageScore(items), count: items.length, payment: pay(items.filter((k) => has(view.approved, k.status))) })),
+    byBusinessUnit: group((k) => k.owner.businessUnit?.name ?? "No business unit").map<ChartPoint & { payment: number }>(([label, items]) => ({ label, value: averageScore(items), count: items.length, payment: pay(items.filter((k) => has(view.approved, k.status))) })),
+    monthly: MONTHS_SHORT.map<ChartPoint & { payment: number }>((label, i) => {
+      const items = yearRows.filter((k) => k.periodMonth === i + 1);
+      return { label, value: averageScore(items), count: items.length, payment: pay(items.filter((k) => has(view.approved, k.status))) };
+    }),
+    /** Where every submitted KPI of the period currently sits in the chain. */
+    pipeline: [
+      { label: "Department Head", count: stageCount([...STAGE_STATUSES.DEPT, KPI_STATUS.RETURNED]) },
+      { label: "HR Admin", count: stageCount(STAGE_STATUSES.HR) },
+      { label: "Finance Admin", count: stageCount(STAGE_STATUSES.FINANCE) },
+      { label: "Audit Admin", count: stageCount(STAGE_STATUSES.AUDIT) },
+      { label: "Completed", count: stageCount([KPI_STATUS.COMPLETED]) },
+    ],
+  };
+}
+
+export type StageDashboard = Awaited<ReturnType<typeof stageDashboard>>;

@@ -4,7 +4,9 @@ export const ROLES = {
   SUPER_ADMIN: "SUPER_ADMIN",
   SYSTEM_ADMIN: "SYSTEM_ADMIN",
   DEPARTMENT_HEAD: "DEPARTMENT_HEAD",
+  HR_ADMIN: "HR_ADMIN",
   FINANCE_ADMIN: "FINANCE_ADMIN",
+  AUDIT_ADMIN: "AUDIT_ADMIN",
   EMPLOYEE: "EMPLOYEE",
 } as const;
 export type Role = (typeof ROLES)[keyof typeof ROLES];
@@ -13,39 +15,17 @@ export const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: "Super Admin",
   SYSTEM_ADMIN: "System Admin",
   DEPARTMENT_HEAD: "Department Head",
+  HR_ADMIN: "HR Admin",
   FINANCE_ADMIN: "Finance Admin",
+  AUDIT_ADMIN: "Audit Admin",
   EMPLOYEE: "Employee",
 };
 
-export const KPI_STATUS = {
-  DRAFT: "DRAFT",
-  SUBMITTED: "SUBMITTED",
-  RETURNED: "RETURNED",
-  APPROVED: "APPROVED",
-  ADJUSTED: "ADJUSTED",
-  REJECTED: "REJECTED",
-} as const;
-export type KpiStatus = (typeof KPI_STATUS)[keyof typeof KPI_STATUS];
+/** The three reviewing admin roles after the Department Head. Each sees every department. */
+export const STAGE_ADMIN_ROLES: Role[] = [ROLES.HR_ADMIN, ROLES.FINANCE_ADMIN, ROLES.AUDIT_ADMIN];
 
-export const STATUS_LABELS: Record<KpiStatus, string> = {
-  DRAFT: "Draft",
-  SUBMITTED: "Submitted",
-  RETURNED: "Returned",
-  APPROVED: "Approved",
-  ADJUSTED: "Adjusted",
-  REJECTED: "Rejected",
-};
-
-export const KPI_CATEGORY = {
-  PROJECT: "PROJECT",
-  PEOPLE_CULTURE: "PEOPLE_CULTURE",
-} as const;
-export type KpiCategory = (typeof KPI_CATEGORY)[keyof typeof KPI_CATEGORY];
-
-export const CATEGORY_LABELS: Record<KpiCategory, string> = {
-  PROJECT: "Project KPI",
-  PEOPLE_CULTURE: "People & Culture KPI",
-};
+// KPI statuses and their labels live with the rest of the KPI rules.
+export { KPI_STATUS, STATUS_LABELS, type KpiStatus } from "./kpi";
 
 export const USER_STATUS = {
   PENDING_SETUP: "PENDING_SETUP",
@@ -74,7 +54,8 @@ export const DEFAULT_DEPARTMENTS = [
   { code: "SCM", name: "Supply Chain" },
 ];
 
-export const TRACKER_STEPS = ["Target", "Actual", "Evidence", "Score", "Review", "Approval"] as const;
+/** KPI card progress: the employee scores, the Department Head and HR review, Finance and Audit approve. */
+export const TRACKER_STEPS = ["Score", "Review", "Approval"] as const;
 
 export const MONTHS = [
   "January", "February", "March", "April", "May", "June",

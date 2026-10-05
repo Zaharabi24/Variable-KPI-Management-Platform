@@ -9,7 +9,9 @@ Passwords by user type:
 |---|---|
 | Super Admin | `Admin@2026` |
 | System Admin | `Admin@2026` |
+| HR Admin | `HrAdmin@2026` |
 | Finance Admin | `Finance@2026` |
+| Audit Admin | `Audit@2026` |
 | Department Head (Admin) | `Head@2026` |
 | Employee (User) | `User@2026` |
 
@@ -17,19 +19,23 @@ Passwords by user type:
 
 | Name | Email | Employee ID | Scope |
 |---|---|---|---|
-| Sarwar Hossain | superadmin@anwargroup.net | AG-0001 | All departments, all Department Heads' KPIs, version control, invitations |
+| Sarwar Hossain | superadmin@anwargroup.net | AG-0001 | All departments; approves Department Heads' own KPIs; can act at every stage of the approval chain; version control, invitations |
 
 ## System Admin
 
 | Name | Email | Employee ID | Scope |
 |---|---|---|---|
-| Tanjila Hoque | sysadmin@anwargroup.net | AG-0002 | Invites Department Heads; adds, moves, deactivates and removes employees; can change any employee's fixed KPI target |
+| Tanjila Hoque | sysadmin@anwargroup.net | AG-0002 | Invites Department Heads; adds, moves, deactivates and removes employees; reads all KPIs |
 
-## Finance Admin
+## HR Admin, Finance Admin and Audit Admin
 
-| Name | Email | Employee ID | Scope |
-|---|---|---|---|
-| Mahbub Alam | financeadmin@anwargroup.net | AG-0003 | Variable Pay payments only: sees every request the Super Admin approves and confirms the payment amount |
+Approval chain: **Employee → Department Head → HR Admin → Finance Admin → Audit Admin**. Each of these three roles sees every department.
+
+| Role | Name | Email | Employee ID | Scope |
+|---|---|---|---|---|
+| HR Admin | Shamima Nasrin | hradmin@anwargroup.net | AG-0004 | KPI requests approved by Department Heads: adds Attendance, Remarks, HR Note and the Payment Amount; approving calculates the Total Score and sends the KPI to Finance; can return it to the Department Head |
+| Finance Admin | Mahbub Alam | financeadmin@anwargroup.net | AG-0003 | KPI requests approved by HR: approves for Audit, or rejects and returns to HR with remarks |
+| Audit Admin | Kazi Ashraf | auditadmin@anwargroup.net | AG-0005 | KPI requests approved by Finance: completes the KPI, or returns it to Finance with remarks; reads the Audit Trail |
 
 ## Department Heads (Admin)
 
@@ -46,7 +52,7 @@ Department Heads submit their own KPIs through My KPI; those go to the Super Adm
 
 | Name | Email | Employee ID | Department | Designation |
 |---|---|---|---|---|
-| Rafi Ahmed | rafi.ahmed@anwargroup.net | AG-1042 | Growth Analytics | Sales Executive (reference employee: 16+ KPIs across 2025–2026) |
+| Rafi Ahmed | rafi.ahmed@anwargroup.net | AG-1042 | Growth Analytics | Sales Executive (reference employee: monthly KPIs with a full history) |
 | Sadia Noor | sadia.noor@anwargroup.net | AG-1057 | Growth Analytics | Account Manager |
 | Shuvo Rahman | shuvo.rahman@anwargroup.net | AG-1063 | Growth Analytics | Client Relations Officer |
 | Mahin Chowdhury | mahin.chowdhury@anwargroup.net | AG-1078 | Growth Analytics | Sales Associate |
@@ -60,7 +66,7 @@ Department Heads submit their own KPIs through My KPI; those go to the Super Adm
 
 ### Additional employees — same password `User@2026`
 
-These fill out the department rosters (for example the Variable Pay **Eligible employees** list and its Employee Name / Employee ID search). They have no KPIs of their own. On an existing database add them without reseeding: `npx tsx scripts/add-demo-employees.ts`.
+These fill out the department rosters (for example the KPI Request queues and the leaderboard). On an existing database add them without reseeding: `npx tsx scripts/add-demo-employees.ts`.
 
 | Name | Email | Employee ID | Department | Designation |
 |---|---|---|---|---|

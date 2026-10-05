@@ -19,3 +19,6 @@ Thumbs.db
 
 .vercel
 .env*
+
+# data backups written by migration scripts
+backups/

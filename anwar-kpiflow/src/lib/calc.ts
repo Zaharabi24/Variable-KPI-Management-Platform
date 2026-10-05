@@ -1,50 +1,10 @@
 /**
- * Calculation service — the single implementation of BRD Section 11.
- * Used by forms (preview), detail views, summaries, dashboards and the leaderboard (NFR-20).
+ * Number formatting and KPI periods, shared by forms, detail views, summaries, dashboards and the leaderboard.
+ * The KPI scoring rules themselves live in lib/kpi.ts.
  */
 
 export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
-}
-
-/** Achievement (%) = Actual / Target × 100 (Section 11.1). Target must be > 0. */
-export function achievementPct(target: number, actual: number): number {
-  if (!(target > 0)) return 0;
-  return round2((actual / target) * 100);
-}
-
-/** Calculated Score = Achievement (%) — no curve, no cap in Phase 01 (Section 11.2). */
-export function calculatedScore(achievement: number): number {
-  return round2(achievement);
-}
-
-/** Weighted Score = Final Score × Weight / 100 (Section 11.3). */
-export function weightedScore(finalScore: number, weight: number): number {
-  return round2((finalScore * weight) / 100);
-}
-
-/** Total KPI Score = Σ(Final × Weight) / Σ Weight, over Approved + Adjusted KPIs only (Section 11.3). */
-export function totalKpiScore(items: { finalScore: number | null; weight: number; status: string }[]): number | null {
-  const counted = items.filter((k) => isCounted(k.status) && k.finalScore !== null);
-  const sumW = counted.reduce((a, k) => a + k.weight, 0);
-  if (sumW <= 0) return null;
-  const sum = counted.reduce((a, k) => a + (k.finalScore as number) * k.weight, 0);
-  return round2(sum / sumW);
-}
-
-/** Average Achievement = simple mean of Achievement % over Approved + Adjusted KPIs (Section 11.4). */
-export function averageAchievement(items: { achievement: number; status: string }[]): number | null {
-  const counted = items.filter((k) => isCounted(k.status));
-  if (counted.length === 0) return null;
-  return round2(counted.reduce((a, k) => a + k.achievement, 0) / counted.length);
-}
-
-export function isCounted(status: string): boolean {
-  return status === "APPROVED" || status === "ADJUSTED";
-}
-
-export function formulaText(target: number, actual: number): string {
-  return `(actual ${fmtNum(actual)} / target ${fmtNum(target)}) * 100`;
 }
 
 export function fmtNum(n: number | null | undefined, digits = 2): string {
@@ -99,10 +59,6 @@ export function previousPeriod(p: PeriodRange): PeriodRange {
     return p.index === 1 ? periodRange("QUARTERLY", p.year - 1, 4) : periodRange("QUARTERLY", p.year, p.index - 1);
   }
   return periodRange("YEARLY", p.year - 1, 1);
-}
-
-export function inPeriod(k: { periodYear: number; periodMonth: number }, p: PeriodRange): boolean {
-  return k.periodYear === p.year && k.periodMonth >= p.fromMonth && k.periodMonth <= p.toMonth;
 }
 
 export function periodNoun(type: PeriodType): string {

@@ -5,17 +5,18 @@ const PUBLIC = ["/login", "/register", "/setup-password", "/forgot-password", "/
 const COOKIE = "kpiflow_session";
 
 /** Screens each role may open (Section 6.1). Pages re-check on the server; this just makes wrong-role visits redirect instantly. */
-const EMPLOYEE_ONLY_BLOCK = ["/dashboard", "/pending-requests", "/variable-pay", "/leaderboard", "/admin"];
+const EMPLOYEE_ONLY_BLOCK = ["/dashboard", "/pending-requests", "/kpi-requests", "/leaderboard", "/admin"];
 const HEAD_BLOCK = ["/admin"];
 const SUPER_ADMIN_BLOCK = ["/my-kpi", "/performance"];
-/** Finance Admin is allow-listed: the Variable Pay payment workspace and their own profile, nothing else. */
-const FINANCE_ADMIN_ALLOW = ["/variable-pay", "/mailbox", "/profile", "/api/variable-pay", "/api/mailbox"];
+/** HR Admin, Finance Admin and Audit Admin are allow-listed: their dashboard, the KPI Request queue, a KPI's full form and its files. */
+const STAGE_ADMIN_ALLOW = ["/dashboard", "/kpi-requests", "/my-kpi/", "/mailbox", "/profile", "/api/kpi", "/api/evidence", "/api/mailbox"];
+/** The Audit Admin also reads the Audit Trail. */
+const AUDIT_ADMIN_ALLOW = [...STAGE_ADMIN_ALLOW, "/admin/audit"];
 const SYSTEM_ADMIN_ALLOW = ["/admin/department-heads", "/admin/employees", "/admin/kpis", "/my-kpi/", "/mailbox", "/profile", "/api", "/dev"];
 
 function homeFor(role: string) {
   if (role === "EMPLOYEE") return "/my-kpi";
   if (role === "SYSTEM_ADMIN") return "/admin/employees";
-  if (role === "FINANCE_ADMIN") return "/variable-pay";
   return "/dashboard";
 }
 
@@ -48,9 +49,9 @@ export async function middleware(req: NextRequest) {
     (role === "DEPARTMENT_HEAD" && HEAD_BLOCK.some((p) => pathname.startsWith(p))) ||
     (role === "SUPER_ADMIN" && SUPER_ADMIN_BLOCK.some((p) => pathname === p)) ||
     (role === "SYSTEM_ADMIN" && pathname !== "/" && !SYSTEM_ADMIN_ALLOW.some((p) => pathname.startsWith(p))) ||
-    (role === "FINANCE_ADMIN" && pathname !== "/" && !FINANCE_ADMIN_ALLOW.some((p) => pathname.startsWith(p)));
-  // A Finance Admin is refused other APIs outright (evidence files, KPI reports); other roles keep the page-level checks.
-  if (blocked && role === "FINANCE_ADMIN" && pathname.startsWith("/api")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    ((role === "HR_ADMIN" || role === "FINANCE_ADMIN") && pathname !== "/" && !STAGE_ADMIN_ALLOW.some((p) => pathname.startsWith(p))) ||
+    (role === "AUDIT_ADMIN" && pathname !== "/" && !AUDIT_ADMIN_ALLOW.some((p) => pathname.startsWith(p)));
+  if (blocked && pathname.startsWith("/api")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (blocked && !pathname.startsWith("/api")) {
     const url = req.nextUrl.clone();
     url.pathname = homeFor(role);

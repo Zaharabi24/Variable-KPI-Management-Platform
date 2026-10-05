@@ -5,7 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
-import { COMPANY_DOMAIN, ROLES, USER_STATUS } from "@/lib/constants";
+import { COMPANY_DOMAIN, ROLES, ROLE_LABELS, STAGE_ADMIN_ROLES, USER_STATUS, type Role } from "@/lib/constants";
 import { issueSetupLink } from "./auth";
 import { flatten, invalid, type ActionState } from "./form";
 
@@ -43,23 +43,27 @@ export async function inviteDepartmentHeadAction(_prev: ActionState, formData: F
   return { ok: true, message: `Invitation sent to ${user.fullName}. The setup link is in the Outbox.` };
 }
 
-/** Finance Admin accounts hold payment authority, so only the Super Admin may create or change them. */
+/** HR, Finance and Audit Admins hold approval authority across every department, so only the Super Admin may create or change them. */
 function mayManage(admin: { role: string }, target: { role: string }) {
-  return target.role !== ROLES.FINANCE_ADMIN || admin.role === ROLES.SUPER_ADMIN;
+  return !(STAGE_ADMIN_ROLES as string[]).includes(target.role) || admin.role === ROLES.SUPER_ADMIN;
 }
 
 function revalidateUsers() {
   revalidatePath("/admin/employees");
   revalidatePath("/admin/department-heads");
+  revalidatePath("/admin/hr-admins");
   revalidatePath("/admin/finance-admins");
+  revalidatePath("/admin/audit-admins");
 }
 
-/* Invite Finance Admin — Super Admin only. The invitee sets their own password through a single-use link. */
-const inviteFinanceSchema = inviteSchema.omit({ role: true, departmentId: true }).extend({ designation: z.string().trim().max(80).optional() });
+/* Invite an HR Admin, Finance Admin or Audit Admin — Super Admin only. The invitee sets their own password through a single-use link. */
+const inviteStageAdminSchema = inviteSchema.omit({ role: true, departmentId: true }).extend({ designation: z.string().trim().max(80).optional() });
 
-export async function inviteFinanceAdminAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function inviteStageAdminAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const admin = await requireRole(ROLES.SUPER_ADMIN);
-  const parsed = inviteFinanceSchema.safeParse(Object.fromEntries(formData));
+  const role = String(formData.get("adminRole") ?? "") as Role;
+  if (!STAGE_ADMIN_ROLES.includes(role)) return { ok: false, message: "Unknown admin role." };
+  const parsed = inviteStageAdminSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(formData, flatten(parsed.error));
   const d = parsed.data;
   const dup = await db.user.findFirst({ where: { OR: [{ email: d.email }, { employeeId: d.employeeId }] } });
@@ -67,12 +71,12 @@ export async function inviteFinanceAdminAction(_prev: ActionState, formData: For
 
   const user = await db.user.create({
     data: {
-      fullName: d.fullName, email: d.email, employeeId: d.employeeId, role: ROLES.FINANCE_ADMIN, designation: d.designation || "Finance Admin",
+      fullName: d.fullName, email: d.email, employeeId: d.employeeId, role, designation: d.designation || ROLE_LABELS[role],
       status: USER_STATUS.PENDING_SETUP, businessUnitId: d.businessUnitId, departmentId: null,
     },
   });
   await issueSetupLink(user.id, user.email, user.fullName, "INVITATION", admin.id);
-  await audit(admin.id, "FINANCE_ADMIN_INVITED", "User", user.id, { email: user.email });
+  await audit(admin.id, `${role}_INVITED`, "User", user.id, { email: user.email });
   revalidateUsers();
   return { ok: true, message: `Invitation sent to ${user.fullName}. The setup link is in the Outbox.` };
 }
@@ -82,7 +86,7 @@ export async function resendInvitationAction(userId: string) {
   const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user || user.status !== USER_STATUS.PENDING_SETUP || !mayManage(admin, user)) return;
-  await issueSetupLink(user.id, user.email, user.fullName, user.role === ROLES.DEPARTMENT_HEAD || user.role === ROLES.FINANCE_ADMIN ? "INVITATION" : "SIGNUP", admin.id);
+  await issueSetupLink(user.id, user.email, user.fullName, user.role === ROLES.DEPARTMENT_HEAD || (STAGE_ADMIN_ROLES as string[]).includes(user.role) ? "INVITATION" : "SIGNUP", admin.id);
   await audit(admin.id, "INVITATION_RESENT", "User", user.id);
   revalidateUsers();
 }
@@ -140,13 +144,13 @@ export async function deleteUserAction(userId: string) {
   const admin = await requireRole(ROLES.SUPER_ADMIN, ROLES.SYSTEM_ADMIN);
   const user = await db.user.findUnique({
     where: { id: userId },
-    include: { _count: { select: { ownedKpis: true, approvingKpis: true, vpEvaluations: true, vpEvaluated: true, vpHrNotes: true, vpDecided: true, vpPaymentsConfirmed: true, vpEvents: true } } },
+    include: { _count: { select: { ownedKpis: true, approvingKpis: true, decisions: true, versions: true } } },
   });
   if (!user || user.id === admin.id || user.role === ROLES.SUPER_ADMIN || user.role === ROLES.SYSTEM_ADMIN || !mayManage(admin, user)) return;
   if (Object.values(user._count).some((n) => n > 0)) {
-    // Keep history: deactivate instead of hard delete (KPI records, Variable Pay requests, decisions and payments stay attributable)
+    // Keep history: deactivate instead of hard delete (KPI records and every decision stay attributable)
     await db.user.update({ where: { id: userId }, data: { status: USER_STATUS.DEACTIVATED } });
-    await audit(admin.id, "USER_DEACTIVATED", "User", userId, { reason: "delete requested; KPI and Variable Pay history retained" });
+    await audit(admin.id, "USER_DEACTIVATED", "User", userId, { reason: "delete requested; KPI history retained" });
   } else {
     await db.user.delete({ where: { id: userId } });
     await audit(admin.id, "USER_DELETED", "User", userId, { email: user.email });

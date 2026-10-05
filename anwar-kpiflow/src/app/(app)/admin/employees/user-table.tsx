@@ -19,7 +19,7 @@ export type UserRow = {
 };
 type Opt = { id: string; name: string };
 
-export function UserTable({ users, units, departments, kind }: { users: UserRow[]; units: Opt[]; departments: Opt[]; kind: "head" | "employee" | "finance" }) {
+export function UserTable({ users, units, departments, kind }: { users: UserRow[]; units: Opt[]; departments: Opt[]; kind: "head" | "employee" | "admin" }) {
   const [menu, setMenu] = React.useState<string | null>(null);
   const [move, setMove] = React.useState<UserRow | null>(null);
   const [edit, setEdit] = React.useState<UserRow | null>(null);
@@ -45,7 +45,7 @@ export function UserTable({ users, units, departments, kind }: { users: UserRow[
       <Table>
         <thead>
           <tr>
-            <Th>Name</Th><Th>Employee ID</Th><Th>Business Unit</Th><Th>Department</Th><Th>Status</Th><Th align="right">{kind === "head" ? "Pending reviews" : kind === "finance" ? "Payments confirmed" : "KPIs"}</Th><Th></Th>
+            <Th>Name</Th><Th>Employee ID</Th><Th>Business Unit</Th><Th>Department</Th><Th>Status</Th><Th align="right">{kind === "head" ? "Pending reviews" : kind === "admin" ? "Decisions recorded" : "KPIs"}</Th><Th></Th>
           </tr>
         </thead>
         <tbody>

@@ -5,6 +5,7 @@ import { ProfileForm } from "./profile-form";
 import { ROLE_LABELS } from "@/lib/constants";
 import { initials } from "@/lib/utils";
 import { db } from "@/lib/db";
+import { SCORED_STATUSES } from "@/lib/kpi";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -23,8 +24,8 @@ export default async function ProfilePage() {
           <p className="text-[13px] text-ink-500">{user.designation ?? ROLE_LABELS[user.role]}</p>
           <span className="inline-flex mt-3 h-6 px-2.5 rounded-full bg-brand-50 text-brand-800 border border-brand-100 text-[11.5px] font-medium">{ROLE_LABELS[user.role]}</span>
           <dl className="mt-6 grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-surface border border-ink-100 p-3"><dt className="text-[11px] text-ink-400">Submitted</dt><dd className="font-mono tnum text-[18px] font-semibold">{count("SUBMITTED")}</dd></div>
-            <div className="rounded-xl bg-surface border border-ink-100 p-3"><dt className="text-[11px] text-ink-400">Approved</dt><dd className="font-mono tnum text-[18px] font-semibold text-brand-700">{count("APPROVED") + count("ADJUSTED")}</dd></div>
+            <div className="rounded-xl bg-surface border border-ink-100 p-3"><dt className="text-[11px] text-ink-400">Submitted</dt><dd className="font-mono tnum text-[18px] font-semibold">{stats.filter((x) => x.status !== "DRAFT").reduce((a, x) => a + x._count._all, 0)}</dd></div>
+            <div className="rounded-xl bg-surface border border-ink-100 p-3"><dt className="text-[11px] text-ink-400">Approved</dt><dd className="font-mono tnum text-[18px] font-semibold text-brand-700">{SCORED_STATUSES.reduce((a, s) => a + count(s), 0)}</dd></div>
             <div className="rounded-xl bg-surface border border-ink-100 p-3"><dt className="text-[11px] text-ink-400">Returned</dt><dd className="font-mono tnum text-[18px] font-semibold text-red-600">{count("RETURNED")}</dd></div>
           </dl>
         </Card>

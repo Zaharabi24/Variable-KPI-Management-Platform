@@ -1,178 +1,140 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
-import { requireUser, canDecideKpi } from "@/lib/auth";
-import { achievementPct, calculatedScore } from "@/lib/calc";
-import { KPI_STATUS } from "@/lib/constants";
-import { diffKpi, snapshotOf } from "@/lib/versions";
-import { flatten, invalid, type ActionState } from "./form";
+import { requireUser } from "@/lib/auth";
+import { KPI_TASK_COUNT, kpiTitle } from "@/lib/kpi";
+import { KpiError, auditDecide, deleteKpi, deptDecide, financeDecide, hrDecide, type DeptDecision, type KpiFull, type TaskInput } from "@/lib/kpi-service";
+import { notifyKpi } from "@/lib/kpi-notify";
+import { revalidateKpi } from "@/lib/kpi-revalidate";
+import { invalid, type ActionState } from "./form";
 
-async function loadForDecision(kpiId: string) {
-  const user = await requireUser();
-  const kpi = await db.kpi.findUnique({ where: { id: kpiId }, include: { owner: true } });
-  if (!kpi || kpi.deletedAt) return { user, kpi: null, error: "Request not found." };
-  if (!canDecideKpi(user, kpi)) return { user, kpi: null, error: "You are not allowed to act on this request." };
-  return { user, kpi, error: null };
+/**
+ * The four reviewing stages of the approval chain. Each action runs its decision in one transaction
+ * (lib/kpi-service.ts re-checks who may act), then records the audit entry and notifies whoever is next.
+ */
+
+const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
+const TX = { timeout: 20000, maxWait: 10000 };
+
+function fail(formData: FormData, e: unknown): ActionState {
+  if (e instanceof KpiError) return invalid(formData, e.fields, e.message);
+  console.error("[kpi-review]", e);
+  return { ok: false, message: "Something went wrong. Nothing was saved. Please try again." };
 }
 
-function revalidateAll(kpiId: string) {
-  for (const p of ["/pending-requests", "/dashboard", "/leaderboard", "/my-kpi", `/my-kpi/${kpiId}`, "/performance", "/admin/kpis", "/admin/versions"]) {
-    revalidatePath(p);
+const ownerOf = (kpi: KpiFull) => db.user.findUniqueOrThrow({ where: { id: kpi.ownerId }, select: { fullName: true, employeeId: true } });
+
+/** Department Head: Approve, Apply Adjustment, Return to Employee or Reject. */
+export async function deptDecideAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const d = str(formData, "decision");
+  const decision: DeptDecision = d === "adjust" || d === "return" || d === "reject" ? d : "approve";
+  const tasks: TaskInput[] = Array.from({ length: KPI_TASK_COUNT }, (_, i) => ({ task: str(formData, `task_${i + 1}`), score: str(formData, `score_${i + 1}`), remarks: str(formData, `tremarks_${i + 1}`) }));
+  try {
+    const kpi = await db.$transaction(
+      (tx) => deptDecide(tx, user, {
+        kpiId: str(formData, "kpiId"), decision, tasks, reason: str(formData, "reason"),
+        qualityOfWork: str(formData, "qualityOfWork"), timelineOfDeliverables: str(formData, "timelineOfDeliverables"), stakeholderPeerReview: str(formData, "stakeholderPeerReview"),
+      }),
+      TX,
+    );
+    const owner = await ownerOf(kpi);
+    const title = kpiTitle(kpi);
+    await audit(user.id, `KPI_DEPT_${decision.toUpperCase()}`, "Kpi", kpi.id, { period: title, kpiScore: kpi.kpiScore, reason: str(formData, "reason").trim() || null });
+    if (decision === "return") {
+      await notifyKpi("EMPLOYEE", kpi, owner.fullName, "KPI returned for correction", `Your KPI for ${title} was returned by ${user.fullName}.\n\nRemarks: ${kpi.returnRemarks}\n\nCorrect it and submit it again.`);
+    } else if (decision === "reject") {
+      await notifyKpi("EMPLOYEE", kpi, owner.fullName, "KPI rejected", `Your KPI for ${title} was rejected by ${user.fullName}.\n\nReason: ${kpi.decisionReason}`);
+    } else {
+      await notifyKpi("HR", kpi, owner.fullName, "KPI approved by the Department Head",
+        `${user.fullName} approved the KPI of ${owner.fullName} (${owner.employeeId}) for ${title}${kpi.adjusted ? " with an adjustment" : ""}. KPI (5): ${kpi.kpiScore} of 50. Please add Attendance, Remarks, the HR Note and the Payment Amount.`);
+    }
+    revalidateKpi(kpi.id);
+    const message = decision === "return" ? `Returned to ${owner.fullName} for correction.` : decision === "reject" ? `KPI of ${owner.fullName} rejected.` : `${decision === "adjust" ? "Adjusted and approved" : "Approved"}. The KPI of ${owner.fullName} is now with the HR Admin.`;
+    return { ok: true, message };
+  } catch (e) {
+    return fail(formData, e);
   }
 }
 
-/* FR-REV-06 — Approve: calculated score becomes final */
-export async function approveKpiAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { user, kpi, error } = await loadForDecision(String(formData.get("kpiId")));
-  if (!kpi) return { ok: false, message: error ?? undefined };
-  if (kpi.status !== KPI_STATUS.SUBMITTED) return { ok: false, message: "Only a Submitted KPI can be approved." };
-
-  const updated = await db.kpi.update({
-    where: { id: kpi.id },
-    data: { status: KPI_STATUS.APPROVED, finalScore: kpi.calculatedScore, decidedAt: new Date(), decisionReason: null, currentVersion: kpi.currentVersion + 1 },
-  });
-  await db.$transaction([
-    db.kpiVersion.create({ data: { kpiId: kpi.id, versionNo: updated.currentVersion, action: "APPROVE", snapshot: snapshotOf(updated), changes: JSON.stringify(diffKpi(kpi, updated)), changedById: user.id } }),
-    db.reviewDecision.create({ data: { kpiId: kpi.id, reviewerId: user.id, decision: "APPROVE" } }),
-  ]);
-  await audit(user.id, "KPI_APPROVED", "Kpi", kpi.id, { finalScore: updated.finalScore });
-  revalidateAll(kpi.id);
-  return { ok: true, message: `Approved "${kpi.name}" with final score ${updated.finalScore}.` };
+/** HR Admin: Approve (the Total Score is calculated and the KPI goes to the Finance Admin) or Return to Department Head. */
+export async function hrDecideAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const decision = str(formData, "decision") === "return" ? "return" : "approve";
+  try {
+    const kpi = await db.$transaction(
+      (tx) => hrDecide(tx, user, { kpiId: str(formData, "kpiId"), decision, attendance: str(formData, "attendance"), hrRemarks: str(formData, "hrRemarks"), hrNote: str(formData, "hrNote"), paymentAmount: str(formData, "paymentAmount"), reason: str(formData, "reason") }),
+      TX,
+    );
+    const owner = await ownerOf(kpi);
+    const title = kpiTitle(kpi);
+    await audit(user.id, decision === "return" ? "KPI_HR_RETURNED" : "KPI_HR_APPROVED", "Kpi", kpi.id, { period: title, totalScore: kpi.totalScore, reason: decision === "return" ? kpi.returnRemarks : null });
+    if (decision === "return") {
+      await notifyKpi("DEPT", kpi, owner.fullName, "KPI returned by the HR Admin", `${user.fullName} returned the KPI of ${owner.fullName} (${owner.employeeId}) for ${title}.\n\nRemarks: ${kpi.returnRemarks}\n\nPlease review it and approve it again.`);
+    } else {
+      await notifyKpi("FINANCE", kpi, owner.fullName, "KPI approved by the HR Admin", `The KPI of ${owner.fullName} (${owner.employeeId}) for ${title} was approved by ${user.fullName} with a Total Score of ${kpi.totalScore} out of 100. Please review it.`);
+      // The employee is told the score, never the payment.
+      await notifyKpi("EMPLOYEE", kpi, owner.fullName, "KPI Total Score available", `Your KPI for ${title} was approved by the HR Admin. Total Score: ${kpi.totalScore} out of 100.`);
+    }
+    revalidateKpi(kpi.id);
+    return { ok: true, message: decision === "return" ? `Returned to the Department Head of ${owner.fullName}.` : `Approved with a Total Score of ${kpi.totalScore}. The KPI of ${owner.fullName} is now with the Finance Admin.` };
+  } catch (e) {
+    return fail(formData, e);
+  }
 }
 
-/* FR-REV-06/07 — Adjustment: change Score, Weight or other field with a reason, then approve */
-const adjustSchema = z.object({
-  kpiId: z.string(),
-  finalScore: z.coerce.number({ message: "Enter the adjusted score." }).min(0, "Score cannot be negative."),
-  weight: z.coerce.number({ message: "Enter the KPI weight." }).gt(0, "Weight must be greater than 0.").max(100, "Weight cannot exceed 100."),
-  target: z.coerce.number().positive("Target must be greater than zero."),
-  actual: z.coerce.number().min(0),
-  reason: z.string().trim().min(5, "A reason is required for every adjustment."),
-});
-
-export async function adjustKpiAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const parsed = adjustSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return invalid(formData, flatten(parsed.error));
-  const d = parsed.data;
-  const { user, kpi, error } = await loadForDecision(d.kpiId);
-  if (!kpi) return { ok: false, message: error ?? undefined };
-  if (kpi.status !== KPI_STATUS.SUBMITTED) return { ok: false, message: "Only a Submitted KPI can be adjusted." };
-
-  const achievement = achievementPct(d.target, d.actual);
-  const updated = await db.kpi.update({
-    where: { id: kpi.id },
-    data: {
-      target: d.target, actual: d.actual, weight: d.weight, achievement, calculatedScore: calculatedScore(achievement),
-      finalScore: d.finalScore, status: KPI_STATUS.ADJUSTED, decisionReason: d.reason, decidedAt: new Date(),
-      currentVersion: kpi.currentVersion + 1,
-    },
-  });
-  const changes = diffKpi(kpi, updated);
-  await db.$transaction([
-    db.kpiVersion.create({ data: { kpiId: kpi.id, versionNo: updated.currentVersion, action: "ADJUST", snapshot: snapshotOf(updated), changes: JSON.stringify(changes), reason: d.reason, changedById: user.id } }),
-    db.reviewDecision.create({ data: { kpiId: kpi.id, reviewerId: user.id, decision: "ADJUST", reason: d.reason } }),
-  ]);
-  await audit(user.id, "KPI_ADJUSTED", "Kpi", kpi.id, { changes, reason: d.reason });
-  revalidateAll(kpi.id);
-  return { ok: true, message: `Adjusted and approved "${kpi.name}" with final score ${d.finalScore}.` };
+/** Finance Admin: Approve (the KPI goes to the Audit Admin) or Reject and return to the HR Admin. */
+export async function financeDecideAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const decision = str(formData, "decision") === "return" ? "return" : "approve";
+  try {
+    const kpi = await db.$transaction((tx) => financeDecide(tx, user, { kpiId: str(formData, "kpiId"), decision, note: str(formData, "note"), reason: str(formData, "reason") }), TX);
+    const owner = await ownerOf(kpi);
+    const title = kpiTitle(kpi);
+    await audit(user.id, decision === "return" ? "KPI_FINANCE_RETURNED" : "KPI_FINANCE_APPROVED", "Kpi", kpi.id, { period: title, paymentAmount: kpi.paymentAmount, reason: decision === "return" ? kpi.returnRemarks : null });
+    if (decision === "return") {
+      await notifyKpi("HR", kpi, owner.fullName, "KPI rejected and returned by the Finance Admin", `${user.fullName} rejected the KPI of ${owner.fullName} (${owner.employeeId}) for ${title} and returned it to you.\n\nRemarks: ${kpi.returnRemarks}`);
+    } else {
+      await notifyKpi("AUDIT", kpi, owner.fullName, "KPI approved by the Finance Admin", `The KPI of ${owner.fullName} (${owner.employeeId}) for ${title} was approved by ${user.fullName}. Please complete the audit review.`);
+    }
+    revalidateKpi(kpi.id);
+    return { ok: true, message: decision === "return" ? `Rejected and returned to the HR Admin.` : `Approved. The KPI of ${owner.fullName} is now with the Audit Admin.` };
+  } catch (e) {
+    return fail(formData, e);
+  }
 }
 
-/* FR-REV-06/07 — Return to Employee with remarks */
-export async function returnKpiAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const reason = String(formData.get("reason") ?? "").trim();
-  if (reason.length < 5) return invalid(formData, { reason: "Remarks are required when returning a KPI." });
-  const { user, kpi, error } = await loadForDecision(String(formData.get("kpiId")));
-  if (!kpi) return { ok: false, message: error ?? undefined };
-  if (kpi.status !== KPI_STATUS.SUBMITTED) return { ok: false, message: "Only a Submitted KPI can be returned." };
-
-  const updated = await db.kpi.update({
-    where: { id: kpi.id },
-    data: { status: KPI_STATUS.RETURNED, returnRemarks: reason, decisionReason: reason, decidedAt: new Date(), currentVersion: kpi.currentVersion + 1 },
-  });
-  await db.$transaction([
-    db.kpiVersion.create({ data: { kpiId: kpi.id, versionNo: updated.currentVersion, action: "RETURN", snapshot: snapshotOf(updated), changes: JSON.stringify(diffKpi(kpi, updated)), reason, changedById: user.id } }),
-    db.reviewDecision.create({ data: { kpiId: kpi.id, reviewerId: user.id, decision: "RETURN", reason } }),
-  ]);
-  await audit(user.id, "KPI_RETURNED", "Kpi", kpi.id, { reason });
-  revalidateAll(kpi.id);
-  return { ok: true, message: `Returned "${kpi.name}" to ${kpi.owner.fullName} for correction.` };
+/** Audit Admin: Approve (the KPI is completed) or Return to the Finance Admin. */
+export async function auditDecideAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const decision = str(formData, "decision") === "return" ? "return" : "approve";
+  try {
+    const kpi = await db.$transaction((tx) => auditDecide(tx, user, { kpiId: str(formData, "kpiId"), decision, note: str(formData, "note"), reason: str(formData, "reason") }), TX);
+    const owner = await ownerOf(kpi);
+    const title = kpiTitle(kpi);
+    await audit(user.id, decision === "return" ? "KPI_AUDIT_RETURNED" : "KPI_AUDIT_APPROVED", "Kpi", kpi.id, { period: title, reason: decision === "return" ? kpi.returnRemarks : null });
+    if (decision === "return") {
+      await notifyKpi("FINANCE", kpi, owner.fullName, "KPI returned by the Audit Admin", `${user.fullName} returned the KPI of ${owner.fullName} (${owner.employeeId}) for ${title}.\n\nRemarks: ${kpi.returnRemarks}`);
+    } else {
+      await notifyKpi("EMPLOYEE", kpi, owner.fullName, "KPI fully approved", `Your KPI for ${title} has been approved at every stage: Department Head, HR Admin, Finance Admin and Audit Admin.`);
+    }
+    revalidateKpi(kpi.id);
+    return { ok: true, message: decision === "return" ? `Returned to the Finance Admin.` : `Audit approved. The KPI of ${owner.fullName} is complete.` };
+  } catch (e) {
+    return fail(formData, e);
+  }
 }
 
-/* FR-REV-06/07 — Reject with reason */
-export async function rejectKpiAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const reason = String(formData.get("reason") ?? "").trim();
-  if (reason.length < 5) return invalid(formData, { reason: "A reason is required when rejecting a KPI." });
-  const { user, kpi, error } = await loadForDecision(String(formData.get("kpiId")));
-  if (!kpi) return { ok: false, message: error ?? undefined };
-  if (kpi.status !== KPI_STATUS.SUBMITTED) return { ok: false, message: "Only a Submitted KPI can be rejected." };
-
-  const updated = await db.kpi.update({
-    where: { id: kpi.id },
-    data: { status: KPI_STATUS.REJECTED, finalScore: null, decisionReason: reason, decidedAt: new Date(), currentVersion: kpi.currentVersion + 1 },
-  });
-  await db.$transaction([
-    db.kpiVersion.create({ data: { kpiId: kpi.id, versionNo: updated.currentVersion, action: "REJECT", snapshot: snapshotOf(updated), changes: JSON.stringify(diffKpi(kpi, updated)), reason, changedById: user.id } }),
-    db.reviewDecision.create({ data: { kpiId: kpi.id, reviewerId: user.id, decision: "REJECT", reason } }),
-  ]);
-  await audit(user.id, "KPI_REJECTED", "Kpi", kpi.id, { reason });
-  revalidateAll(kpi.id);
-  return { ok: true, message: `Rejected "${kpi.name}".` };
+/** Delete with a reason. The record stays in the version history. */
+export async function deleteKpiAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  try {
+    const kpi = await db.$transaction((tx) => deleteKpi(tx, user, str(formData, "kpiId"), str(formData, "reason")), TX);
+    await audit(user.id, "KPI_DELETED", "Kpi", kpi.id, { reason: kpi.deleteReason });
+    revalidateKpi(kpi.id);
+    return { ok: true, message: "KPI deleted. It remains in the version history." };
+  } catch (e) {
+    return fail(formData, e);
+  }
 }
-
-/* FR-REV-05 — Edit / Update a pending request (recorded as a new version) */
-const editSchema = z.object({
-  kpiId: z.string(),
-  name: z.string().trim().min(2, "KPI name is required."),
-  target: z.coerce.number().positive("Target must be greater than zero."),
-  actual: z.coerce.number().min(0),
-  weight: z.coerce.number().gt(0).max(100, "Weight must be between 0 and 100."),
-  remarks: z.string().trim().default(""), // optional, as on submission
-  reason: z.string().trim().min(5, "Describe why the request was edited."),
-});
-
-export async function editKpiRequestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const parsed = editSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return invalid(formData, flatten(parsed.error));
-  const d = parsed.data;
-  const { user, kpi, error } = await loadForDecision(d.kpiId);
-  if (!kpi) return { ok: false, message: error ?? undefined };
-  if (kpi.status !== KPI_STATUS.SUBMITTED) return { ok: false, message: "Only a Submitted request can be edited." };
-
-  const achievement = achievementPct(d.target, d.actual);
-  const updated = await db.kpi.update({
-    where: { id: kpi.id },
-    data: { name: d.name, target: d.target, actual: d.actual, weight: d.weight, remarks: d.remarks, achievement, calculatedScore: calculatedScore(achievement), currentVersion: kpi.currentVersion + 1 },
-  });
-  const changes = diffKpi(kpi, updated);
-  await db.$transaction([
-    db.kpiVersion.create({ data: { kpiId: kpi.id, versionNo: updated.currentVersion, action: "EDIT", snapshot: snapshotOf(updated), changes: JSON.stringify(changes), reason: d.reason, changedById: user.id } }),
-    db.reviewDecision.create({ data: { kpiId: kpi.id, reviewerId: user.id, decision: "EDIT", reason: d.reason } }),
-  ]);
-  await audit(user.id, "KPI_REQUEST_EDITED", "Kpi", kpi.id, { changes, reason: d.reason });
-  revalidateAll(kpi.id);
-  return { ok: true, message: `Request "${updated.name}" updated (version ${updated.currentVersion}).` };
-}
-
-/* FR-REV-07 / FR-AUD-05 — Delete with reason; record kept in version history */
-export async function deleteKpiRequestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const reason = String(formData.get("reason") ?? "").trim();
-  if (reason.length < 5) return invalid(formData, { reason: "A reason is required to delete a request." });
-  const { user, kpi, error } = await loadForDecision(String(formData.get("kpiId")));
-  if (!kpi) return { ok: false, message: error ?? undefined };
-
-  const updated = await db.kpi.update({
-    where: { id: kpi.id },
-    data: { deletedAt: new Date(), deleteReason: reason, currentVersion: kpi.currentVersion + 1 },
-  });
-  await db.$transaction([
-    db.kpiVersion.create({ data: { kpiId: kpi.id, versionNo: updated.currentVersion, action: "DELETE", snapshot: snapshotOf(updated), changes: JSON.stringify([{ field: "deleted", oldValue: null, newValue: "yes" }]), reason, changedById: user.id } }),
-    db.reviewDecision.create({ data: { kpiId: kpi.id, reviewerId: user.id, decision: "DELETE", reason } }),
-  ]);
-  await audit(user.id, "KPI_DELETED", "Kpi", kpi.id, { reason });
-  revalidateAll(kpi.id);
-  return { ok: true, message: `Deleted "${kpi.name}". It remains in version history.` };
-}
-

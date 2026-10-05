@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { Select } from "@/components/ui/field";
-import { FIELD_LABELS, TRACKED_FIELDS } from "@/lib/versions";
-import { CATEGORY_LABELS, MONTHS, type KpiCategory } from "@/lib/constants";
+import { FIELD_LABELS } from "@/lib/versions";
+import { MONTHS } from "@/lib/constants";
+import { DECISION_LABELS, STATUS_LABELS, type KpiStatus } from "@/lib/kpi";
 import { fmtDateTime, cn } from "@/lib/utils";
 import { fmtNum } from "@/lib/calc";
 
@@ -19,7 +20,8 @@ export function VersionCompare({ versions }: { versions: V[] }) {
   const sa = parse(va.snapshot);
   const sb = parse(vb.snapshot);
 
-  const rows = TRACKED_FIELDS.filter((f) => f !== "approverId").map((f) => ({ field: f as string, a: sa[f as string], b: sb[f as string] }));
+  // Every versioned field, in the order the snapshot lists them (the sheet first, then the five tasks).
+  const rows = [...new Set([...Object.keys(sa), ...Object.keys(sb)])].filter((f) => f !== "approverId" && f in FIELD_LABELS).map((f) => ({ field: f, a: sa[f], b: sb[f] }));
 
   return (
     <div className="space-y-6">
@@ -30,7 +32,7 @@ export function VersionCompare({ versions }: { versions: V[] }) {
               onClick={() => { setA(b); setB(v.id); }}
               className={cn("rounded-lg border px-3 py-2 text-left text-[12.5px] transition-colors", v.id === b ? "border-brand-500 bg-brand-50" : v.id === a ? "border-ink-400 bg-ink-100/60" : "border-ink-200 bg-white hover:border-ink-300")}
             >
-              <div className="font-semibold text-ink-900">v{v.versionNo} · {v.action.charAt(0) + v.action.slice(1).toLowerCase()}</div>
+              <div className="font-semibold text-ink-900">v{v.versionNo} · {DECISION_LABELS[v.action] ?? v.action}</div>
               <div className="text-ink-500">{v.changedBy} · {fmtDateTime(v.createdAt)}</div>
             </button>
           </li>
@@ -40,11 +42,11 @@ export function VersionCompare({ versions }: { versions: V[] }) {
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <span className="label">Compare</span>
-          <Select value={a} onChange={(e) => setA(e.target.value)}>{versions.map((v) => <option key={v.id} value={v.id}>v{v.versionNo} · {v.action} · {v.changedBy}</option>)}</Select>
+          <Select value={a} onChange={(e) => setA(e.target.value)}>{versions.map((v) => <option key={v.id} value={v.id}>v{v.versionNo} · {DECISION_LABELS[v.action] ?? v.action} · {v.changedBy}</option>)}</Select>
         </div>
         <div>
           <span className="label">with</span>
-          <Select value={b} onChange={(e) => setB(e.target.value)}>{versions.map((v) => <option key={v.id} value={v.id}>v{v.versionNo} · {v.action} · {v.changedBy}</option>)}</Select>
+          <Select value={b} onChange={(e) => setB(e.target.value)}>{versions.map((v) => <option key={v.id} value={v.id}>v{v.versionNo} · {DECISION_LABELS[v.action] ?? v.action} · {v.changedBy}</option>)}</Select>
         </div>
       </div>
 
@@ -80,10 +82,9 @@ function parse(s: string): Record<string, unknown> {
 }
 function fmt(field: string, v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
-  if (field === "category") return CATEGORY_LABELS[v as KpiCategory] ?? String(v);
   if (field === "periodMonth") return MONTHS[Number(v) - 1] ?? String(v);
   if (field === "periodYear") return String(v);
-  if (field === "status") return String(v).charAt(0) + String(v).slice(1).toLowerCase();
+  if (field === "status") return STATUS_LABELS[v as KpiStatus] ?? String(v);
   if (typeof v === "number") return fmtNum(v);
   const s = String(v);
   return s.length > 60 ? s.slice(0, 57) + "…" : s;

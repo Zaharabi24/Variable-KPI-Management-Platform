@@ -18,7 +18,7 @@ export default async function VersionsPage({ searchParams }: { searchParams: Pro
   const q = sp.q ?? "";
 
   const candidates = await db.kpi.findMany({
-    where: q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { owner: { fullName: { contains: q, mode: "insensitive" } } }, { owner: { employeeId: { contains: q, mode: "insensitive" } } }] } : {},
+    where: { status: { not: "DRAFT" }, ...(q ? { owner: { OR: [{ fullName: { contains: q, mode: "insensitive" } }, { employeeId: { contains: q, mode: "insensitive" } }] } } : {}) },
     include: { owner: true, _count: { select: { versions: true } } },
     orderBy: { updatedAt: "desc" },
     take: 40,
@@ -41,10 +41,10 @@ export default async function VersionsPage({ searchParams }: { searchParams: Pro
               <li key={c.id}>
                 <Link href={`/admin/versions?kpi=${c.id}${q ? `&q=${encodeURIComponent(q)}` : ""}`} className={`block px-5 py-3 border-b border-ink-100 hover:bg-surface ${c.id === selectedId ? "bg-brand-50/60 border-l-4 border-l-brand-600" : ""}`}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13.5px] font-medium text-ink-900 truncate">{c.name}</span>
+                    <span className="text-[13.5px] font-medium text-ink-900 truncate">{c.owner.fullName}</span>
                     <span className="text-[11px] text-ink-400 tnum shrink-0">{c._count.versions} v.</span>
                   </div>
-                  <div className="text-[12px] text-ink-500 truncate">{c.owner.fullName} · {MONTHS_SHORT[c.periodMonth - 1]} {c.periodYear}{c.deletedAt ? " · deleted" : ""}</div>
+                  <div className="text-[12px] text-ink-500 truncate"><span className="font-mono">{c.owner.employeeId}</span> · KPI {MONTHS_SHORT[c.periodMonth - 1]} {c.periodYear}{c.deletedAt ? " · deleted" : ""}</div>
                 </Link>
               </li>
             ))}
@@ -54,8 +54,8 @@ export default async function VersionsPage({ searchParams }: { searchParams: Pro
         {kpi ? (
           <Card>
             <CardHeader
-              title={<span className="flex items-center gap-2">{kpi.name} <StatusBadge status={kpi.status} /></span>}
-              subtitle={`${kpi.owner.fullName} · approver ${kpi.approver?.fullName ?? "—"} · ${kpi.versions.length} version${kpi.versions.length === 1 ? "" : "s"} · last change ${fmtDateTime(kpi.updatedAt)}`}
+              title={<span className="flex items-center gap-2">{kpi.owner.fullName} · KPI {MONTHS_SHORT[kpi.periodMonth - 1]} {kpi.periodYear} <StatusBadge status={kpi.status} /></span>}
+              subtitle={`${kpi.owner.employeeId} · approver ${kpi.approver?.fullName ?? "—"} · ${kpi.versions.length} version${kpi.versions.length === 1 ? "" : "s"} · last change ${fmtDateTime(kpi.updatedAt)}`}
               action={<Link href={`/my-kpi/${kpi.id}`} className="text-[13px] font-medium text-brand-700 hover:underline">Open record →</Link>}
             />
             <CardBody>

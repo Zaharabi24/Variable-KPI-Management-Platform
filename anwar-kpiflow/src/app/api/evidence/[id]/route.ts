@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getCurrentUser, canViewKpi } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canViewKpi } from "@/lib/kpi";
 import { audit } from "@/lib/audit";
 
 /** NFR-07 — evidence downloads go through the access guard; every download is audited. */

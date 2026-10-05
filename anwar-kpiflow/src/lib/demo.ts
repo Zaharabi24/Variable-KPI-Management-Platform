@@ -5,13 +5,15 @@
  */
 export const DEMO_PASSWORDS = {
   SUPER_ADMIN: "Admin@2026",
+  HR_ADMIN: "HrAdmin@2026",
   FINANCE_ADMIN: "Finance@2026",
+  AUDIT_ADMIN: "Audit@2026",
   DEPARTMENT_HEAD: "Head@2026",
   EMPLOYEE: "User@2026",
 } as const;
 
 export type DemoAccount = {
-  role: "Super Admin" | "System Admin" | "Finance Admin" | "Department Head" | "Employee";
+  role: "Super Admin" | "System Admin" | "HR Admin" | "Finance Admin" | "Audit Admin" | "Department Head" | "Employee";
   name: string;
   email: string;
   password: string;
@@ -27,7 +29,9 @@ const EMP = DEMO_PASSWORDS.EMPLOYEE;
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   { role: "Super Admin", name: "Sarwar Hossain", email: "superadmin@anwargroup.net", password: SA, employeeId: "AG-0001", department: "All departments", designation: "Group Head of Performance" },
   { role: "System Admin", name: "Tanjila Hoque", email: "sysadmin@anwargroup.net", password: SA, employeeId: "AG-0002", department: "All departments", designation: "System Administrator" },
-  { role: "Finance Admin", name: "Mahbub Alam", email: "financeadmin@anwargroup.net", password: DEMO_PASSWORDS.FINANCE_ADMIN, employeeId: "AG-0003", department: "All departments · Variable Pay payments", designation: "Finance Admin" },
+  { role: "Finance Admin", name: "Mahbub Alam", email: "financeadmin@anwargroup.net", password: DEMO_PASSWORDS.FINANCE_ADMIN, employeeId: "AG-0003", department: "All departments · KPI requests approved by HR", designation: "Finance Admin" },
+  { role: "HR Admin", name: "Shamima Nasrin", email: "hradmin@anwargroup.net", password: DEMO_PASSWORDS.HR_ADMIN, employeeId: "AG-0004", department: "All departments · KPI requests approved by Department Heads", designation: "HR Admin" },
+  { role: "Audit Admin", name: "Kazi Ashraf", email: "auditadmin@anwargroup.net", password: DEMO_PASSWORDS.AUDIT_ADMIN, employeeId: "AG-0005", department: "All departments · KPI requests approved by Finance", designation: "Audit Admin" },
 
   { role: "Department Head", name: "Nasrin Islam", email: "nasrin.islam@anwargroup.net", password: DH, employeeId: "AG-0101", department: "Growth Analytics", designation: "Head of Growth Analytics" },
   { role: "Department Head", name: "Kamal Hasan", email: "kamal.hasan@anwargroup.net", password: DH, employeeId: "AG-0102", department: "Growth Analytics", designation: "Deputy Head (2nd head of the same department)" },
@@ -49,7 +53,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
 
 /**
  * Additional active employees (password as for every employee) that fill out the department rosters, e.g. the
- * Variable Pay "Eligible employees" list. Kept out of DEMO_ACCOUNTS so the sign-in page stays short.
+ * KPI Request queues and the leaderboard. Kept out of DEMO_ACCOUNTS so the sign-in page stays short.
  * `bu` and `dept` are Business Unit and Department codes.
  */
 export const DEMO_EXTRA_EMPLOYEES = [

@@ -2,36 +2,32 @@
 
 import * as React from "react";
 import { Plus, PencilLine } from "lucide-react";
-import { KpiCard, type KpiCardData } from "./kpi-card";
-import { KpiFormDrawer, type KpiFormInitial } from "./kpi-form";
-
-type Approver = { id: string; fullName: string; designation: string | null };
+import { KPI_STATUS, type KpiView } from "@/lib/kpi";
+import { KpiCard } from "./kpi-card";
+import { KpiFormDrawer, type Approver, type KpiFormOwner } from "./kpi-form";
 
 /**
- * FR-KPI-01/09/10/11 — one parent card holding the Create KPI tile and the KPI cards.
- * Drafts appear first with a "Continue draft" action that reopens the form (target fixed).
+ * One parent card holding the Create KPI tile and the KPI cards.
+ * Drafts come first with a "Continue draft" action; a returned KPI offers "Correct and resubmit".
  */
 export function MyKpiBoard({
-  kpis,
-  drafts,
-  approvers,
-  approverLabel,
+  kpis, owner, approvers, approverLabel,
 }: {
-  kpis: KpiCardData[];
-  drafts: Record<string, KpiFormInitial>;
+  kpis: KpiView[];
+  owner: KpiFormOwner;
   approvers: Approver[];
   approverLabel: string;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [draft, setDraft] = React.useState<KpiFormInitial | null>(null);
-  const draftCount = Object.keys(drafts).length;
+  const [editing, setEditing] = React.useState<KpiView | null>(null);
+  const draftCount = kpis.filter((k) => k.status === KPI_STATUS.DRAFT).length;
   return (
     <section className="card">
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
           <h2 className="text-[15px] font-semibold">KPI cards</h2>
           <p className="text-[13px] text-ink-500">
-            {kpis.length === 0 ? "No KPIs yet — start with the Create KPI card." : `${kpis.length} KPI${kpis.length === 1 ? "" : "s"}${draftCount ? ` · ${draftCount} draft${draftCount === 1 ? "" : "s"} first` : ""} · newest first`}
+            {kpis.length === 0 ? "No KPIs yet — start with the Create KPI card." : `${kpis.length} KPI${kpis.length === 1 ? "" : "s"}${draftCount ? ` · ${draftCount} draft${draftCount === 1 ? "" : "s"} first` : ""} · newest month first`}
           </p>
         </div>
       </div>
@@ -42,38 +38,37 @@ export function MyKpiBoard({
               type="button"
               onClick={() => setOpen(true)}
               aria-label="Create KPI"
-              className="group h-full min-h-[340px] rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50/50 hover:bg-brand-50 hover:border-brand-400 transition-colors flex flex-col items-center justify-center gap-3 p-5 text-brand-700"
+              className="group h-full min-h-[300px] rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50/50 hover:bg-brand-50 hover:border-brand-400 transition-colors flex flex-col items-center justify-center gap-3 p-5 text-brand-700"
             >
               <span className="h-14 w-14 rounded-full bg-white border border-brand-200 shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform">
                 <Plus className="h-7 w-7 text-brand-500" />
               </span>
               <span className="text-[15px] font-semibold">Create KPI</span>
-              <span className="text-[12.5px] text-brand-700/70 text-center max-w-[220px]">
-                Save as Draft or Submit. Achievement and score are calculated for you.
+              <span className="text-[12.5px] text-brand-700/70 text-center max-w-[230px]">
+                Score your five major tasks for the month. Save as Draft or Submit to your Department Head.
               </span>
             </button>
-            {kpis.map((k) => (
-              <KpiCard
-                key={k.id}
-                kpi={k}
-                action={
-                  drafts[k.id] ? (
-                    <button
-                      type="button"
-                      onClick={() => setDraft(drafts[k.id])}
-                      className="btn-brand h-9 px-4 text-[13px]"
-                    >
-                      <PencilLine className="h-4 w-4" /> Continue draft
-                    </button>
-                  ) : undefined
-                }
-              />
-            ))}
+            {kpis.map((k) => {
+              const editable = k.status === KPI_STATUS.DRAFT || k.status === KPI_STATUS.RETURNED;
+              return (
+                <KpiCard
+                  key={k.id}
+                  kpi={k}
+                  action={
+                    editable ? (
+                      <button type="button" onClick={() => setEditing(k)} className="btn-brand h-9 px-4 text-[13px]">
+                        <PencilLine className="h-4 w-4" /> {k.status === KPI_STATUS.DRAFT ? "Continue draft" : "Correct and resubmit"}
+                      </button>
+                    ) : undefined
+                  }
+                />
+              );
+            })}
           </div>
         </div>
       </div>
-      <KpiFormDrawer open={open} onClose={() => setOpen(false)} approvers={approvers} approverLabel={approverLabel} mode="create" />
-      {draft && <KpiFormDrawer key={draft.id} open onClose={() => setDraft(null)} approvers={approvers} approverLabel={approverLabel} initial={draft} mode="draft" />}
+      {open && <KpiFormDrawer open onClose={() => setOpen(false)} owner={owner} approvers={approvers} approverLabel={approverLabel} />}
+      {editing && <KpiFormDrawer key={editing.id} open onClose={() => setEditing(null)} owner={owner} approvers={approvers} approverLabel={approverLabel} kpi={editing} />}
     </section>
   );
 }

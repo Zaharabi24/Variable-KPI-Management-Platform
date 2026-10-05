@@ -11,8 +11,7 @@ import { initials } from "@/lib/utils";
 
 const TITLES: [string, string][] = [
   ["/dashboard", "Dashboard"],
-  ["/pending-requests", "KPI Pending Request"],
-  ["/variable-pay", "Variable Pay"],
+  ["/kpi-requests", "KPI Request"],
   ["/mailbox", "Mailbox"],
   ["/leaderboard", "Leaderboard"],
   ["/my-kpi/", "KPI Details"],
@@ -21,7 +20,9 @@ const TITLES: [string, string][] = [
   ["/profile", "Profile"],
   ["/admin/department-heads", "Department Head"],
   ["/admin/employees", "Employees"],
+  ["/admin/hr-admins", "HR Admin"],
   ["/admin/finance-admins", "Finance Admin"],
+  ["/admin/audit-admins", "Audit Admin"],
   ["/admin/kpis", "All KPIs"],
   ["/admin/versions", "Version Control and History"],
   ["/admin/organisation", "Units and Departments"],
@@ -32,13 +33,11 @@ const TITLES: [string, string][] = [
 export function AppShell({
   user,
   pendingCount,
-  vp,
   mailUnread,
   children,
 }: {
   user: { fullName: string; email: string; role: Role; department: { name: string } | null; designation: string | null };
   pendingCount: number;
-  vp?: { show: boolean; badge: number };
   mailUnread?: number;
   children: React.ReactNode;
 }) {
@@ -58,7 +57,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen flex">
-      <Sidebar user={user} pendingCount={pendingCount} vp={vp} mailUnread={mailUnread} open={open} onClose={() => setOpen(false)} />
+      <Sidebar user={user} pendingCount={pendingCount} mailUnread={mailUnread} open={open} onClose={() => setOpen(false)} />
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-ink-900/[0.07] shadow-[0_1px_2px_rgba(24,24,27,0.03)] flex items-center px-4 sm:px-6 lg:px-8 gap-3">
           <button className="lg:hidden h-9 w-9 rounded-lg flex items-center justify-center text-ink-700 hover:bg-ink-100" onClick={() => setOpen(true)} aria-label="Open menu">

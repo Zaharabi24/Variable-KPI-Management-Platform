@@ -31,15 +31,15 @@ export function KpiFilters({
     <div className="flex flex-col lg:flex-row lg:items-center gap-3 px-5 pt-5 pb-4 border-b border-ink-100">
       <form className="relative flex-1 max-w-sm" onSubmit={(e) => { e.preventDefault(); apply({ q: (new FormData(e.currentTarget).get("q") as string) ?? "" }); }}>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
-        <Input name="q" defaultValue={q} placeholder="Search KPI, owner or Employee ID" className="pl-9" aria-label="Search KPIs" />
+        <Input name="q" defaultValue={q} placeholder="Search owner or Employee ID" className="pl-9" aria-label="Search KPIs" />
       </form>
       <Select aria-label="Department" className="lg:w-[190px]" value={dept} onChange={(e) => apply({ dept: e.target.value })}>
         <option value="">All departments</option>
         {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
       </Select>
-      <Select aria-label="Status" className="lg:w-[150px]" value={status} onChange={(e) => apply({ status: e.target.value })}>
+      <Select aria-label="Status" className="lg:w-[200px]" value={status} onChange={(e) => apply({ status: e.target.value })}>
         <option value="">All statuses</option>
-        {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        {Object.entries(STATUS_LABELS).filter(([k]) => k !== "DRAFT").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </Select>
       <div className="relative lg:w-[190px]">
         <Select aria-label="Role" className={cn(role && "pr-14", !role && "text-ink-500")} value={role} onChange={(e) => apply({ role: e.target.value })}>
