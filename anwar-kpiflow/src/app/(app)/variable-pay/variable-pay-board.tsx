@@ -28,7 +28,7 @@ const money = (n: number | null) => (n === null ? "—" : `BDT ${n.toLocaleStrin
 const toNum = (s: string): number | null => (s.trim() === "" || !Number.isFinite(Number(s)) ? null : Number(s));
 const periodOf = (r: VpRow) => `${MONTHS_SHORT[r.periodMonth - 1]} ${r.periodYear}`;
 
-const SCOPE_LABELS: Record<VpMode, string> = { department: "My department", review: "All requests", finance: "Payments" };
+const SCOPE_LABELS: Record<VpMode, string> = { department: "My department", review: "All requests", finance: "Finance Admin payments" };
 
 /** Status always carries its word; colour only reinforces it. */
 function StatusCell({ status }: { status: VpStatus }) {
@@ -99,21 +99,6 @@ export function VariablePayBoard({
         subtitle={subtitle}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            {scopes.length > 1 && (
-              <div className="seg" role="tablist" aria-label="View">
-                {scopes.map((s) => (
-                  <button
-                    key={s}
-                    role="tab"
-                    aria-selected={mode === s}
-                    onClick={() => go({ scope: s }, true)}
-                    className={cn("seg-item", mode === s && "seg-item-active")}
-                  >
-                    {SCOPE_LABELS[s]}
-                  </button>
-                ))}
-              </div>
-            )}
             {!list && (
               <>
                 <Select aria-label="Month" className="h-9 w-[132px]" value={String(month)} onChange={(e) => go({ month: e.target.value, year: String(year) })}>
@@ -127,6 +112,17 @@ export function VariablePayBoard({
           </div>
         }
       />
+
+      {/* View switch on its own row, so a user with more than one Variable Pay role cannot miss the other view. */}
+      {scopes.length > 1 && (
+        <div className="seg mb-6" role="tablist" aria-label="Variable Pay view">
+          {scopes.map((s) => (
+            <button key={s} role="tab" aria-selected={mode === s} onClick={() => go({ scope: s }, true)} className={cn("seg-item", mode === s && "seg-item-active")}>
+              {SCOPE_LABELS[s]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {list && (
         <Card className="mb-6">
