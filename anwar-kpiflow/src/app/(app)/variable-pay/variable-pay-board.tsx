@@ -450,7 +450,7 @@ function RequestDrawer({ row, mode, caps, viewerId, future, onClose }: { row: Vp
 
         {row.status === VP_STATUS.PAYMENT_CONFIRMED && (
           <Card>
-            <CardHeader title="Payment" subtitle="Confirmed by the Finance Admin" />
+            <CardHeader title="Payment" subtitle="Payment amount confirmed for this request" />
             <dl className="px-5 pb-5 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3.5">
               <Detail label="Payment amount" value={<span className="font-mono tnum font-semibold">{money(row.paymentAmount)}</span>} />
               <Detail label="Reference" value={row.paymentReference ?? "—"} />
@@ -692,7 +692,7 @@ function PaymentForm({ row, viewerId, onDone }: { row: VpRow; viewerId: string; 
       <form ref={formRef} action={act} className="px-5 pb-5 space-y-4" noValidate>
         <input type="hidden" name="evaluationId" value={row.evaluationId ?? ""} />
         {state?.message && !state.ok && !Object.keys(e).length && <FormAlert kind="error">{state.message}</FormAlert>}
-        {own && <FormAlert kind="info">This is your own Variable Pay, so another Finance Admin must confirm it.</FormAlert>}
+        {own && <FormAlert kind="info">This is your own Variable Pay, so someone else must confirm it.</FormAlert>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Payment amount (BDT)" htmlFor="vp-pay-amount" required error={e.amount}>
             <Input id="vp-pay-amount" name="amount" type="number" inputMode="decimal" min={0} step="0.01" className="font-mono text-right" value={amount} onChange={(ev) => setAmount(ev.target.value)} invalid={!!e.amount} readOnly={own} placeholder="0.00" />

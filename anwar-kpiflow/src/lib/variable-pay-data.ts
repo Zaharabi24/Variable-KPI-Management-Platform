@@ -200,7 +200,8 @@ export async function variablePayNav(user: ViewUser): Promise<{ show: boolean; b
   const counts = await Promise.all([
     isVpApprover(user) ? db.variablePayEvaluation.count({ where: { status: VP_STATUS.SUBMITTED } }) : 0,
     scopes.includes("department") ? db.variablePayEvaluation.count({ where: { status: VP_STATUS.RETURNED, departmentId: user.departmentId } }) : 0,
-    isVpFinance(user) ? db.variablePayEvaluation.count({ where: { status: VP_STATUS.APPROVED } }) : 0,
+    // Approved requests wait for the Finance Admin; the Super Admin can act on them too, but they are not counted as the Super Admin's own queue.
+    user.role === ROLES.FINANCE_ADMIN ? db.variablePayEvaluation.count({ where: { status: VP_STATUS.APPROVED } }) : 0,
   ]);
   return { show: true, badge: counts.reduce((a, b) => a + b, 0) };
 }

@@ -75,9 +75,12 @@ export function isVpApprover(u: RoleUser): boolean {
 export function isHrReviewer(u: RoleUser): boolean {
   return u.role === "SUPER_ADMIN" || (u.role === "DEPARTMENT_HEAD" && u.department?.code === HR_DEPARTMENT_CODE);
 }
-/** Finance Admin: the dedicated role that receives approved requests and confirms the payment amount. */
+/**
+ * Payments: the Finance Admin is the dedicated role that receives approved requests and confirms the payment amount.
+ * The Super Admin has full oversight, so they can open the same payments view and confirm a payment as well.
+ */
 export function isVpFinance(u: RoleUser): boolean {
-  return u.role === "FINANCE_ADMIN";
+  return u.role === "FINANCE_ADMIN" || u.role === "SUPER_ADMIN";
 }
 
 export type VpMode = "department" | "review" | "finance";

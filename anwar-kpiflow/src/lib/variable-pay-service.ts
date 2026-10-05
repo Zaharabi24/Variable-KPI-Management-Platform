@@ -192,13 +192,15 @@ export async function setHrNote(c: Client, actor: VpActor, input: { evaluationId
 /* ---------- Finance: confirm the payment amount ---------- */
 
 export async function confirmPayment(c: Client, actor: VpActor, input: { evaluationId: string; amount: unknown; reference: string; note: string }) {
-  if (!isVpFinance(actor)) throw new VpError("Only a Finance Admin can confirm a Variable Pay payment.");
+  if (!isVpFinance(actor)) throw new VpError("Only a Finance Admin or the Super Admin can confirm a Variable Pay payment.");
   const ev = await c.variablePayEvaluation.findUnique({ where: { id: input.evaluationId } });
   if (!ev) throw new VpError("Request not found.");
   if (ev.status === VP_STATUS.PAYMENT_CONFIRMED) throw new VpError("Payment is already confirmed for this request.");
   if (ev.status !== VP_STATUS.APPROVED) throw new VpError("Payment can be confirmed only for a request approved by the Super Admin.");
-  // Segregation of duties: the people who prepared or approved a request never confirm its payment.
-  if (ev.evaluatorId === actor.id || ev.decidedById === actor.id || ev.employeeId === actor.id) throw new VpError("You prepared, approved or are the subject of this request, so another Finance Admin must confirm its payment.");
+  // Nobody confirms their own Variable Pay, and whoever prepared a request never confirms its payment.
+  // The Super Admin has full authority over the workflow, so having approved a request does not stop them confirming its payment.
+  if (ev.employeeId === actor.id || ev.evaluatorId === actor.id) throw new VpError("You prepared or are the subject of this request, so someone else must confirm its payment.");
+  if (ev.decidedById === actor.id && actor.role !== "SUPER_ADMIN") throw new VpError("You approved this request, so another Finance Admin must confirm its payment.");
 
   const fields: Record<string, string> = {};
   const amount = num(input.amount);

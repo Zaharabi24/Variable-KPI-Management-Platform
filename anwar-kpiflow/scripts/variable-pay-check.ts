@@ -51,7 +51,7 @@ async function main() {
   if (!admin) throw new Error("Need an active Super Admin to run this check.");
 
   check("Access: Department Head gets the department view", vpScopes(head)[0] === "department");
-  check("Access: Super Admin gets the review view only", JSON.stringify(vpScopes(admin)) === '["review"]', vpScopes(admin));
+  check("Access: Super Admin gets the review view and the payments view", JSON.stringify(vpScopes(admin)) === '["review","finance"]', vpScopes(admin));
   check("Access: Finance Admin gets the payments view only", JSON.stringify(vpScopes({ role: "FINANCE_ADMIN", departmentId: null, department: null })) === '["finance"]');
   if (financeEmployee) check("Access: a Finance department employee has no Variable Pay access", vpScopes(financeEmployee).length === 0, vpScopes(financeEmployee));
   check("Access: an ordinary employee has no Variable Pay access", vpScopes({ role: "EMPLOYEE", departmentId: "x", department: { code: "GA" } }).length === 0);
@@ -142,7 +142,7 @@ async function main() {
         check("Super Admin approves", approved.status === "APPROVED" && approved.decidedById === admin.id && !!approved.decidedAt);
         await rejects("Approved request is locked for the Department Head", () => saveEvaluation(tx, head!, input(), "draft"));
         await rejects("An approved request cannot be decided twice", () => decideEvaluation(tx, admin, { evaluationId: submitted.id, decision: "reject", comment: "changed my mind" }));
-        await rejects("Super Admin cannot confirm payment", () => confirmPayment(tx, admin, { evaluationId: submitted.id, amount: "5000", reference: "", note: "" }));
+        await rejects("Super Admin payment still needs a valid amount", () => confirmPayment(tx, admin, { evaluationId: submitted.id, amount: "0", reference: "", note: "" }), "amount");
         await rejects("Department Head cannot confirm payment", () => confirmPayment(tx, head!, { evaluationId: submitted.id, amount: "5000", reference: "", note: "" }));
         {
           await rejects("Payment amount is required", () => confirmPayment(tx, finance, { evaluationId: submitted.id, amount: "", reference: "", note: "" }), "amount");
@@ -151,6 +151,14 @@ async function main() {
           check("Finance Admin confirms payment", paid.status === "PAYMENT_CONFIRMED" && paid.paymentAmount === 12500.51 && paid.paymentConfirmedById === finance.id && paid.paymentReference === "PV-2020-001", paid.paymentAmount);
           await rejects("Payment cannot be confirmed twice", () => confirmPayment(tx, finance, { evaluationId: submitted.id, amount: "1", reference: "", note: "" }));
           await rejects("HR Note is closed after payment", () => setHrNote(tx, admin, { evaluationId: submitted.id, note: "late" }));
+        }
+        {
+          // Super Admin oversight: they can confirm the payment of a request they approved themselves.
+          const second = await saveEvaluation(tx, head!, input({ month: 11 }), "submit");
+          await decideEvaluation(tx, admin, { evaluationId: second.id, decision: "approve", comment: "" });
+          const paidByAdmin = await confirmPayment(tx, admin, { evaluationId: second.id, amount: "8000", reference: "PV-2020-002", note: "" });
+          check("Super Admin confirms payment of a request they approved", paidByAdmin.status === "PAYMENT_CONFIRMED" && paidByAdmin.paymentAmount === 8000 && paidByAdmin.paymentConfirmedById === admin.id, paidByAdmin.status);
+          await rejects("Super Admin payment cannot be confirmed twice", () => confirmPayment(tx, admin, { evaluationId: second.id, amount: "1", reference: "", note: "" }));
         }
         await rejects("Finance Admin cannot create an evaluation", () => saveEvaluation(tx, finance, input({ month: 3 }), "draft"));
         await rejects("Finance Admin cannot write the HR Note", () => setHrNote(tx, finance, { evaluationId: submitted.id, note: "x" }));

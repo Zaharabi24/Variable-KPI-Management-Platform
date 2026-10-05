@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
 import { appUrl, sendEmail } from "@/lib/email";
-import { MONTHS, ROLES, USER_STATUS } from "@/lib/constants";
+import { MONTHS, ROLES, ROLE_LABELS, USER_STATUS } from "@/lib/constants";
 import { VP_MANUAL_CRITERIA, VP_TASK_COUNT, type VpManualKey } from "@/lib/variable-pay";
 import { VpError, confirmPayment, decideEvaluation, saveEvaluation, setEligibility, setHrNote, type VpDecision } from "@/lib/variable-pay-service";
 import { invalid, type ActionState } from "./form";
@@ -142,7 +142,7 @@ export async function confirmPaymentAction(_prev: ActionState, formData: FormDat
     await audit(user.id, "VARIABLE_PAY_PAYMENT_CONFIRMED", "VariablePayEvaluation", ev.id, { employee: ev.empCode, amount: ev.paymentAmount, reference: ev.paymentReference });
     const amount = (ev.paymentAmount ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 });
     await notify([...(await evaluatorOf(ev)), ...(await superAdmins())], `Variable Pay payment confirmed — ${ev.empName} (${periodOf(ev)})`,
-      `The Finance Admin (${user.fullName}) confirmed a Variable Pay payment of BDT ${amount} for ${ev.empName} (${ev.empCode}), ${periodOf(ev)}.`, "review");
+      `The ${ROLE_LABELS[user.role]} (${user.fullName}) confirmed a Variable Pay payment of BDT ${amount} for ${ev.empName} (${ev.empCode}), ${periodOf(ev)}.`, "review");
     refresh();
     return { ok: true, message: `Payment of BDT ${amount} confirmed for ${ev.empName}.` };
   } catch (e) {
