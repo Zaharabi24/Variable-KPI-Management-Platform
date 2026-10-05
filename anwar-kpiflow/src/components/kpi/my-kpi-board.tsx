@@ -21,6 +21,8 @@ export function MyKpiBoard({
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<KpiView | null>(null);
   const draftCount = kpis.filter((k) => k.status === KPI_STATUS.DRAFT).length;
+  // One KPI per month: a rejected KPI frees its month again.
+  const takenPeriods = kpis.filter((k) => k.status !== KPI_STATUS.REJECTED).map((k) => `${k.periodYear}-${k.periodMonth}`);
   return (
     <section className="card">
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
@@ -67,8 +69,8 @@ export function MyKpiBoard({
           </div>
         </div>
       </div>
-      {open && <KpiFormDrawer open onClose={() => setOpen(false)} owner={owner} approvers={approvers} approverLabel={approverLabel} />}
-      {editing && <KpiFormDrawer key={editing.id} open onClose={() => setEditing(null)} owner={owner} approvers={approvers} approverLabel={approverLabel} kpi={editing} />}
+      {open && <KpiFormDrawer open onClose={() => setOpen(false)} owner={owner} approvers={approvers} approverLabel={approverLabel} takenPeriods={takenPeriods} />}
+      {editing && <KpiFormDrawer key={editing.id} open onClose={() => setEditing(null)} owner={owner} approvers={approvers} approverLabel={approverLabel} kpi={editing} takenPeriods={takenPeriods} />}
     </section>
   );
 }

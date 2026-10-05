@@ -19,7 +19,7 @@ import { BreakdownCard, KpiHistory, KpiSheetReadonly, ScoreStrip, SheetMeta, Sta
 type ReviewStage = Exclude<KpiStage, "EMPLOYEE">;
 const ACTIONS = { DEPT: deptDecideAction, HR: hrDecideAction, FINANCE: financeDecideAction, AUDIT: auditDecideAction } as const;
 
-type Ask = { decision: string; title: string; description: string; label: string; field?: string; placeholder?: string; danger?: boolean };
+type Ask = { decision: string; title: string; description: string; label: string; field?: string; placeholder?: string; danger?: boolean; optional?: boolean };
 
 /**
  * A KPI request opened from the queue. Everyone sees the full form; the part that can be typed in is the part
@@ -86,10 +86,17 @@ function StageReview({ row, stage, canDelete, onClose }: { row: QueueRow; stage:
   const deptReady = sheet.tasksComplete && DEPT_CRITERIA.every((c) => sheet.crit[c.key].trim() !== "");
   const hrReady = sheet.crit.attendance.trim() !== "" && sheet.hr.paymentAmount.trim() !== "";
   const totalText = sheet.total === null ? "—" : `${fmtNum(sheet.total)} / ${KPI_TOTAL_MAX}`;
+  // Why Approve is not available yet, in words, so the button is never unexplained.
+  const missingDept = [
+    !sheet.tasksComplete && "a task and a score from 0 to 10 for all five tasks",
+    ...DEPT_CRITERIA.filter((c) => sheet.crit[c.key].trim() === "").map((c) => c.label),
+  ].filter(Boolean) as string[];
+  const missingHr = [sheet.crit.attendance.trim() === "" && "Attendance", sheet.hr.paymentAmount.trim() === "" && "Payment Amount"].filter(Boolean) as string[];
+  const notReady = stage === "DEPT" && missingDept.length ? `To approve, fill: ${missingDept.join(", ")}.` : stage === "HR" && missingHr.length ? `To approve, fill: ${missingHr.join(", ")}.` : null;
 
   const ASKS: Record<string, Ask> = {
     "DEPT:approve": { decision: "approve", title: "Approve this KPI?", label: "Approve", description: `${name} · ${kpiTitle(row)}. KPI (5) is ${sheet.kpiScore ?? "—"} of 50. The KPI goes to the HR Admin, and you will not be able to change it unless it is returned to you.` },
-    "DEPT:adjust": { decision: "adjust", title: "Apply adjustment", label: "Apply Adjustment", field: "Reason for the adjustment", placeholder: "Why the employee's score breakdown was changed", description: `You changed the score breakdown ${name} submitted. KPI (5) becomes ${sheet.kpiScore ?? "—"} of 50. The reason is recorded and shown to the employee, and the KPI goes to the HR Admin.` },
+    "DEPT:adjust": { decision: "adjust", title: "Apply adjustment", label: "Apply Adjustment", field: "Reason for the adjustment (optional)", optional: true, placeholder: "Why the employee's score breakdown was changed", description: `You changed the score breakdown ${name} submitted. KPI (5) becomes ${sheet.kpiScore ?? "—"} of 50. The change is recorded and shown to the employee, and the KPI goes to the HR Admin.` },
     "DEPT:return": { decision: "return", title: "Return to employee", label: "Return to Employee", field: "Remarks", placeholder: "What needs to be corrected?", description: `The KPI goes back to ${name} with your remarks. They can correct it and submit again.` },
     "DEPT:reject": { decision: "reject", title: "Reject this KPI?", label: "Reject", field: "Reason", placeholder: "Why is this KPI rejected?", danger: true, description: `A rejected KPI is closed and counts in no score. ${name} sees your reason.` },
     "HR:approve": { decision: "approve", title: "Approve this KPI?", label: "Approve", description: `${name} · ${kpiTitle(row)}. Total Score ${totalText}. The KPI goes directly to the Finance Admin.` },
@@ -113,7 +120,8 @@ function StageReview({ row, stage, canDelete, onClose }: { row: QueueRow; stage:
         <div className="flex flex-wrap items-center gap-2">
           {stage === "DEPT" ? (
             <>
-              <Button icon={<Check className="h-4 w-4" />} disabled={pending || !deptReady || sheet.changed} title={sheet.changed ? "You changed the breakdown. Use Apply Adjustment." : undefined} onClick={() => open("approve")}>Approve</Button>
+              {/* If the breakdown was changed, Approve leads to the adjustment step instead of being switched off. */}
+              <Button icon={<Check className="h-4 w-4" />} disabled={pending || !deptReady} onClick={() => open(sheet.changed ? "adjust" : "approve")}>Approve</Button>
               <Button variant="outline" icon={<SlidersHorizontal className="h-4 w-4" />} disabled={pending || !deptReady || !sheet.changed} title={!sheet.changed ? "Change a task or score in the breakdown first." : undefined} onClick={() => open("adjust")}>Apply Adjustment</Button>
             </>
           ) : (
@@ -122,6 +130,7 @@ function StageReview({ row, stage, canDelete, onClose }: { row: QueueRow; stage:
           <Button variant="outline" icon={<Undo2 className="h-4 w-4" />} disabled={pending} onClick={() => open("return")}>{returnLabel}</Button>
           {stage === "DEPT" && <Button variant="outline" className="text-red-700 border-red-200 hover:bg-red-50" icon={<XCircle className="h-4 w-4" />} disabled={pending} onClick={() => open("reject")}>Reject</Button>}
           {canDelete && <Button variant="ghost" size="sm" className="ml-auto text-ink-500 hover:text-red-700" icon={<Trash2 className="h-4 w-4" />} onClick={() => setDeleting(true)}>Delete</Button>}
+          {notReady && <p className="basis-full text-[12.5px] text-amber-800" role="status">{notReady}</p>}
         </div>
       }
     >
@@ -135,7 +144,7 @@ function StageReview({ row, stage, canDelete, onClose }: { row: QueueRow; stage:
         {row.returnRemarks && <FormAlert kind="error"><span className="font-semibold">Returned to the {STAGE_LABELS[stage]} with remarks:</span> {row.returnRemarks}</FormAlert>}
         <FormAlert kind="info">
           {stage === "DEPT" && "You can adjust the employee's score breakdown. Fill Quality of work, Time Line of Deliverables and Stakeholder & Peer Review; KPI (5) is the total of the breakdown."}
-          {stage === "HR" && "Fill Attendance, Remarks, HR Note and the Payment Amount. The Total Score is calculated automatically."}
+          {stage === "HR" && "Fill Attendance and the Payment Amount; Remarks and HR Note are optional. The Total Score is calculated automatically, and the KPI goes to the Finance Admin with the Payment Amount."}
           {stage === "FINANCE" && "Review the KPI and the Payment Amount. Approve to send it to the Audit Admin, or reject and return it to the HR Admin with remarks."}
           {stage === "AUDIT" && "Final verification. Approve to complete the KPI, or return it to the Finance Admin with remarks."}
         </FormAlert>
@@ -143,6 +152,15 @@ function StageReview({ row, stage, canDelete, onClose }: { row: QueueRow; stage:
         <StatusRouteCard kpi={row} />
         <SheetMeta kpi={row} />
         <BreakdownCard sheet={sheet} ownerLabel={ownerLabelOf(row)} editable={stage === "DEPT"} errors={e} baseline={row.tasks.map((t) => t.employeeScore)} />
+        {stage === "DEPT" && sheet.changed && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-[13px] text-amber-900" role="status">
+            <span>
+              <span className="font-semibold">You changed the employee&apos;s score breakdown</span> (task {sheet.changedTasks.join(", ")}): KPI (5) is now {sheet.kpiScore ?? sheet.runningKpi ?? "—"}, the employee submitted {row.selfScore ?? "—"}.
+              Approving records this as an adjustment.
+            </span>
+            <Button type="button" size="sm" variant="outline" onClick={sheet.resetTasks}>Reset to employee&apos;s scores</Button>
+          </div>
+        )}
         {stage !== "DEPT" && row.adjusted && row.adjustReason && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900"><span className="font-semibold">Adjusted by the Department Head.</span> {row.adjustReason}</div>
         )}
@@ -172,13 +190,13 @@ function StageReview({ row, stage, canDelete, onClose }: { row: QueueRow; stage:
         <Dialog open onClose={() => setAsk(null)} title={ask.title} description={ask.description}>
           <div className="space-y-4">
             {ask.field && (
-              <Field label={ask.field} htmlFor="kpi-reason" required error={e.reason}>
+              <Field label={ask.field} htmlFor="kpi-reason" required={!ask.optional} error={e.reason}>
                 <Textarea id="kpi-reason" value={reason} onChange={(ev) => setReason(ev.target.value)} placeholder={ask.placeholder} maxLength={2000} autoFocus />
               </Field>
             )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setAsk(null)} disabled={pending}>Cancel</Button>
-              <Button variant={ask.danger ? "danger" : "primary"} loading={pending} disabled={!!ask.field && reason.trim().length < 5} onClick={() => send(ask.decision)}>{ask.label}</Button>
+              <Button variant={ask.danger ? "danger" : "primary"} loading={pending} disabled={!!ask.field && !ask.optional && reason.trim().length < 5} onClick={() => send(ask.decision)}>{ask.label}</Button>
             </div>
           </div>
         </Dialog>

@@ -28,7 +28,7 @@ export async function saveKpiAction(_prev: ActionState, formData: FormData): Pro
   const hasFile = file instanceof File && file.size > 0;
   if (hasFile) {
     const e = validateEvidence(file);
-    if (e) return invalid(formData, { evidence: e }, "Please correct the highlighted fields.");
+    if (e) return invalid(formData, { evidence: e }, `${e} Nothing was ${intent === "submit" ? "submitted" : "saved"} yet.`);
   }
   const tasks: TaskInput[] = Array.from({ length: KPI_TASK_COUNT }, (_, i) => ({
     task: str(formData, `task_${i + 1}`), score: str(formData, `score_${i + 1}`), remarks: str(formData, `tremarks_${i + 1}`),
@@ -61,7 +61,12 @@ export async function saveKpiAction(_prev: ActionState, formData: FormData): Pro
     revalidateKpi(kpi.id);
     return { ok: true, message: `KPI for ${title} submitted to your Department Head.`, values: { kpiId: kpi.id, submitted: "1" } };
   } catch (e) {
-    if (e instanceof KpiError) return invalid(formData, e.fields, e.message);
+    if (e instanceof KpiError) {
+      // Name the actual problem: the highlighted field may be scrolled out of view.
+      const problems = Object.values(e.fields);
+      const message = problems.length === 0 ? e.message : problems.length === 1 ? problems[0] : `${problems[0]} (and ${problems.length - 1} more to correct)`;
+      return invalid(formData, e.fields, `${message} ${intent === "submit" ? "Nothing was submitted yet." : "Nothing was saved yet."}`);
+    }
     console.error("[kpi]", e);
     return { ok: false, message: "Something went wrong. Nothing was saved. Please try again." };
   }

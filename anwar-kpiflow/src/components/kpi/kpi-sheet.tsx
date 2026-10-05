@@ -71,6 +71,16 @@ export function useKpiSheet(kpi: KpiView | null, echo?: Record<string, string>) 
   return {
     tasks,
     setTask: (i: number, patch: Partial<TaskState>) => setTasks((list) => list.map((t, j) => (j === i ? { ...t, ...patch } : t))),
+    /** Put back the tasks and scores exactly as the employee submitted them (remarks are kept). */
+    resetTasks: () => setTasks((list) => list.map((t, i) => {
+      const base = kpi?.tasks.find((x) => x.sl === i + 1);
+      return base ? { ...t, task: base.task, score: base.employeeScore === null ? "" : String(base.employeeScore) } : t;
+    })),
+    /** Task numbers whose text or score differs from the employee's submission. */
+    changedTasks: kpi ? tasks.flatMap((t, i) => {
+      const base = kpi.tasks.find((x) => x.sl === i + 1);
+      return t.task.trim() !== (base?.task ?? "") || toNum(t.score) !== (base?.employeeScore ?? null) ? [i + 1] : [];
+    }) : [],
     crit,
     setCrit: (key: keyof CritState, value: string) => setCrit((c) => ({ ...c, [key]: value })),
     hr,
@@ -249,24 +259,25 @@ export function ScoreStrip({
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {hrText("hrRemarks", "Remarks")}
-          {hrText("hrNote", "HR Note")}
-        </div>
+        {/* Payment Amount comes straight after the Total Score */}
         {payment && (
-          <div className="rounded-xl border border-ink-200 bg-surface px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div className={cn("rounded-xl border px-4 py-3.5 flex flex-wrap items-center justify-between gap-3", errors.paymentAmount ? "border-red-300 bg-red-50/40" : payment.editable ? "border-brand-200 bg-brand-50/40" : "border-ink-200 bg-surface")}>
             <div className="min-w-0">
-              <label htmlFor="kpi-payment" className="block text-[13px] font-semibold text-ink-900">Payment Amount <span className="font-normal text-ink-500">(BDT)</span></label>
-              <p className="text-[12px] text-ink-500 inline-flex items-center gap-1.5"><Lock className="h-3 w-3" /> Visible to HR, Finance and Audit only. The employee never sees it.</p>
+              <label htmlFor="kpi-payment" className="block text-[13.5px] font-semibold text-ink-900">Payment Amount <span className="font-normal text-ink-500">(BDT)</span>{payment.editable && <span className="text-red-500 ml-0.5" aria-hidden>*</span>}</label>
+              <p className="text-[12px] text-ink-500 inline-flex items-center gap-1.5"><Lock className="h-3 w-3" /> {payment.editable ? "Entered by HR. It goes with the KPI to the Finance Admin and the Audit Admin; the employee never sees it." : "Entered by HR. Visible to HR, Finance and Audit only; the employee never sees it."}</p>
               {errors.paymentAmount && <p className="mt-1 text-[12px] text-red-600" role="alert">{errors.paymentAmount}</p>}
             </div>
             {payment.editable ? (
-              <Input id="kpi-payment" name="paymentAmount" type="number" inputMode="decimal" min={0} step="0.01" className="w-[200px] font-mono text-right" value={sheet.hr.paymentAmount} onChange={(ev) => sheet.setHr("paymentAmount", ev.target.value)} invalid={!!errors.paymentAmount} placeholder="0.00" />
+              <Input id="kpi-payment" name="paymentAmount" type="number" inputMode="decimal" min={0} step="0.01" className="w-[200px] font-mono text-right" value={sheet.hr.paymentAmount} onChange={(ev) => sheet.setHr("paymentAmount", ev.target.value)} invalid={!!errors.paymentAmount} placeholder="Enter amount" required />
             ) : (
               <span className="font-mono tnum text-[17px] font-semibold text-ink-900">{toNum(sheet.hr.paymentAmount) === null ? "—" : `BDT ${Number(sheet.hr.paymentAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>
             )}
           </div>
         )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {hrText("hrRemarks", "Remarks")}
+          {hrText("hrNote", "HR Note")}
+        </div>
         {pendingNote && <p className="text-[12.5px] text-ink-500 inline-flex items-start gap-1.5"><Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" /> {pendingNote}</p>}
       </div>
     </Card>

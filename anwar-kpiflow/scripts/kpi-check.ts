@@ -95,7 +95,6 @@ async function main() {
         await rejects("a missing Department Head score is refused", () => deptDecide(tx, a(head), dept(kpi.id, { stakeholderPeerReview: "" })), "stakeholderPeerReview");
         await rejects("changing the breakdown needs Apply Adjustment", () => deptDecide(tx, a(head), dept(kpi.id, { tasks: tasks(["9", "9.9", "9.9", "9.8", "9.85"]) })));
         await rejects("Apply Adjustment needs an actual change", () => deptDecide(tx, a(head), dept(kpi.id, { decision: "adjust", reason: "no change at all" })));
-        await rejects("Apply Adjustment needs a reason", () => deptDecide(tx, a(head), dept(kpi.id, { decision: "adjust", tasks: tasks(["9", "9.9", "9.9", "9.8", "9.85"]), reason: "" })), "reason");
 
         kpi = await deptDecide(tx, a(head), dept(kpi.id, { decision: "return", reason: "Please add remarks for task 3." }));
         check("returned to the employee", kpi.status === "RETURNED" && kpi.returnRemarks === "Please add remarks for task 3.");

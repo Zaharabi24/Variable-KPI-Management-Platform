@@ -39,7 +39,9 @@ export function Field({
 
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }>(
   function Input({ className, invalid, ...props }, ref) {
-    return <input ref={ref} className={cn("input", invalid && "input-error", className)} aria-invalid={invalid || undefined} {...props} />;
+    // Scrolling the page with the pointer over a focused number box would silently change its value; drop focus instead.
+    const onWheel = props.type === "number" ? (ev: React.WheelEvent<HTMLInputElement>) => { ev.currentTarget.blur(); props.onWheel?.(ev); } : props.onWheel;
+    return <input ref={ref} className={cn("input", invalid && "input-error", className)} aria-invalid={invalid || undefined} {...props} onWheel={onWheel} />;
   },
 );
 

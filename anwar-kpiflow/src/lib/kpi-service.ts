@@ -174,6 +174,12 @@ function reasonOf(v: string, what: string): string {
   return reason;
 }
 
+function noteOf(v: string): string | null {
+  const note = v.trim();
+  if (note.length > 2000) throw new KpiError(FIX, { note: "Keep the note under 2,000 characters." });
+  return note || null;
+}
+
 /* ---------- Department Head ---------- */
 
 export type DeptDecision = "approve" | "adjust" | "return" | "reject";
@@ -226,7 +232,8 @@ export async function deptDecide(c: Client, actor: Actor, input: DeptInput): Pro
   const adjust = input.decision === "adjust";
   if (changed && !adjust) throw new KpiError("You changed the employee's score breakdown. Use Apply Adjustment and give a reason.");
   if (!changed && adjust) throw new KpiError("Nothing in the employee's score breakdown was changed. Use Approve instead.");
-  const reason = adjust ? reasonOf(input.reason, "A reason is required for every adjustment") : null;
+  // Remarks are optional on every approval, including an adjustment; the changed scores are recorded either way.
+  const reason = adjust ? noteOf(input.reason) : null;
 
   for (const t of tasks) await c.kpiTask.update({ where: { kpiId_sl: { kpiId: kpi.id, sl: t.sl } }, data: { task: t.task, score: t.score, remarks: t.remarks } });
   return commit(
@@ -281,12 +288,6 @@ export async function hrDecide(c: Client, actor: Actor, input: HrInput): Promise
 /* ---------- Finance Admin and Audit Admin ---------- */
 
 export type StageInput = { kpiId: string; decision: "approve" | "return"; note: string; reason: string };
-
-function noteOf(v: string): string | null {
-  const note = v.trim();
-  if (note.length > 2000) throw new KpiError(FIX, { note: "Keep the note under 2,000 characters." });
-  return note || null;
-}
 
 export async function financeDecide(c: Client, actor: Actor, input: StageInput): Promise<KpiFull> {
   const kpi = await loadFor(c, actor, input.kpiId, "FINANCE");
